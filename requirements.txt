@@ -1,0 +1,6 @@
+beautifulsoup4==4.14.3
+discord.py==2.7.1
+pandas==2.3.3
+python-jobspy==1.1.82
+requests==2.33.1
+streamlit==1.56.0

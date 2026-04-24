@@ -1,0 +1,24 @@
+{
+  "poll_interval_seconds": 300,
+  "message_rate_limit_seconds": 1.5,
+  "state_file": "database/discord_bot_state.json",
+  "lock_file": "database/discord_bot.lock",
+  "nameNeed": {
+    "123456789012345678": {
+      "name": "YourName",
+      "need": "Describe your job interests and goals here."
+    }
+  },
+  "targets": [
+    {
+      "name": "PrimaryChannel",
+      "enabled": true,
+      "user_db_name": "YourName",
+      "guild_id": 123456789012345678,
+      "channel_id": 123456789012345678,
+      "role_ids": [],
+      "user_ids": [123456789012345678],
+      "max_jobs_per_poll": 25
+    }
+  ]
+}

@@ -1,11 +1,13 @@
 import os
 import json
+from unittest import case
 import requests
 from typing import List, Dict, Optional
 from JobScrapper.ut_jobs_scraper import getUoftjobs
 from GeneralJobSites import GetGeneralJobs
 from JobScrapper.Akimbo import GetAkimboJobs
 from JobScrapper.OCADU import OCADU_Scrape
+from openai import OpenAI
 from JobStruct import (
     parse_job_data,
     parse_json_to_job_reason_pairs,
@@ -15,15 +17,28 @@ from JobStruct import (
     get_named_db_path,
     job_exists,
 )
+
+from dotenv import load_dotenv
+load_dotenv()
+
 class LLMClient:
     """Copilot API 客户端 (OpenAI 兼容)"""
     
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1", base_url: Optional[str] = None):
         # Copilot API 不需要真正的 API key，使用 dummy 即可
-        self.api_key = api_key or os.getenv("COPILOT_API_KEY", "dummy")
         self.model = model
-        # 默认使用本地 copilot-api 服务
-        self.base_url = base_url or os.getenv("COPILOT_API_URL", "http://10.0.0.178:4141/v1/chat/completions")
+
+        LLMProvider = os.getenv("LLM_PROVIDER", "deepseek").lower()
+        self.provider = LLMProvider
+        match LLMProvider:
+            case "copilot":
+                self.api_key = api_key or os.getenv("COPILOT_API_KEY", "dummy")
+                # 默认使用本地 copilot-api 服务
+                self.base_url = base_url or os.getenv("COPILOT_API_URL", "http://10.0.0.178:4141/v1/chat/completions")
+            case "deepseek":
+                self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
+                self.base_url = "https://api.deepseek.com/v1/chat/completions"
+                self.model = "deepseek-v4-flash"  # DeepSeek 推荐使用专门的模型名称
     
     def set_model(self, model: str):
         """切换模型"""
@@ -52,22 +67,53 @@ class LLMClient:
                 raise ValueError("messages 或 user_input 必须提供其一。")
             messages = self.build_messages(user_input, system_prompt)
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": messages
-        }
-        
-        try:
-            response = requests.post(self.base_url, headers=headers, json=payload, timeout=120)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+        match self.provider:
+            case "copilot":
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                payload = {
+                    "model": self.model,
+                    "messages": messages
+                }
+                if self.provider == "deepseek":
+                    payload["extra_body"] = {
+                        "thinking": {"type": "disabled"}
+                    }
+                
+                try:
+                    response = requests.post(self.base_url, headers=headers, json=payload, timeout=120)
+                    response.raise_for_status()
+                    return response.json()
+                except requests.exceptions.RequestException as e:
+                    return {"error": str(e)}
+            
+            case "deepseek":
+                
+                client = OpenAI(
+                    api_key=os.getenv("DEEPSEEK_API_KEY"),
+                    base_url="https://api.deepseek.com"
+                )
+                
+                try:
+                    response = client.chat.completions.create(
+                        model=self.model,
+                        messages=messages
+                    )
+                    # Convert to dict format to match expected response structure
+                    return {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": response.choices[0].message.content
+                                }
+                            }
+                        ]
+                    }
+                except Exception as e:
+                    return {"error": str(e)}
     
     def get_default_system_prompt(self) -> str:
         """返回 JobFinder 机器人默认的系统提示。"""

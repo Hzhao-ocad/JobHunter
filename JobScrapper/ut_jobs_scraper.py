@@ -14,6 +14,7 @@ import sys
 
 import requests
 from bs4 import BeautifulSoup
+from bs4 import FeatureNotFound
 
 from JobStruct import *
 
@@ -22,7 +23,11 @@ def scrape_searchresults(url: str):
     headers = {"User-Agent": "Mozilla/5.0 (compatible)"}
     resp = requests.get(url, headers=headers, timeout=15)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "lxml")
+    try:
+        # Prefer lxml when installed, but keep working without optional parser deps.
+        soup = BeautifulSoup(resp.text, "lxml")
+    except FeatureNotFound:
+        soup = BeautifulSoup(resp.text, "html.parser")
     tables = soup.find_all("table", id="searchresults")
     if not tables:
         raise RuntimeError("table with id 'searchresults' not found")

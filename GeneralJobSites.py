@@ -87,7 +87,7 @@ def GetGeneralJobs():
 
     job_rows = jobs.to_dict(orient="records") if hasattr(jobs, "to_dict") else list(jobs)
     job_structs = [_normalize_job_row(row) for row in job_rows]
-
+    final_jobs = []
     final_jobs += job_structs
 
     jobs = scrape_jobs(
