@@ -1,0 +1,14 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Local Discord bot configuration/state
+discord_config.json
+database/discord_bot_state.json
+database/discord_bot.lock
