@@ -13,6 +13,3 @@ __pycache__/
 discord_config.json
 database/discord_bot_state.json
 database/discord_bot.lock
-
-git config --global user.email "you@example.com"
-  git config --global user.name "Your Name"

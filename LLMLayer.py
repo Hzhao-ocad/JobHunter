@@ -198,7 +198,7 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
 
         if not alljobs_copy:
             print("No new jobs to process after DB filtering.")
-            raise SystemExit(0)
+            continue
 
         LLMReadibleJobs = []
         for job in alljobs_copy:

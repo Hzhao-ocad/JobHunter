@@ -9,12 +9,37 @@ functions used by scraper modules.
 import re
 import sqlite3
 import json
+import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 
 DEFAULT_LLM_COMMENT = "LLM didn't provide any comment"
+LOG_PREFIX = "[JobHunter LOG]"
+_LOGGER = logging.getLogger("JobHunter.JobStruct")
+
+
+def _emit_log(level: int, message: str, *args: Any) -> None:
+    """Emit a prefixed log line and fallback to print when logging is unconfigured."""
+    rendered = message % args if args else message
+    prefixed = f"{LOG_PREFIX} {rendered}"
+
+    root_logger = logging.getLogger()
+    if _LOGGER.handlers or root_logger.handlers:
+        _LOGGER.log(level, prefixed)
+        return
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} {prefixed}", flush=True)
+
+
+def _summarize_job(job_data: Dict[str, Any]) -> str:
+    title = str(job_data.get("job_title") or "").strip() or "<no title>"
+    company = str(job_data.get("company_name") or "").strip() or "<no company>"
+    location = str(job_data.get("job_location") or "").strip() or "<no location>"
+    url = str(job_data.get("job_url") or "").strip() or "<no url>"
+    return f"title='{title}', company='{company}', location='{location}', url='{url}'"
 
 
 JOB_DATA_TEMPLATE = {
@@ -87,12 +112,20 @@ def build_job_data(
             "raw_columns": raw_columns or [],
         }
     )
+    _emit_log(
+        logging.DEBUG,
+        "Normalized job record: %s",
+        _summarize_job(data),
+    )
     return data
 
 def parse_job_data(job_data: Dict[str, Any]) -> str:
     """Convert a normalized job dictionary into a single text block for LLM consumption."""
     if not isinstance(job_data, dict):
+        _emit_log(logging.ERROR, "parse_job_data rejected non-dict input of type %s", type(job_data).__name__)
         raise TypeError("job_data must be a dict")
+
+    _emit_log(logging.DEBUG, "Preparing LLM text for job: %s", _summarize_job(job_data))
 
     title = str(job_data.get("job_title", "")).strip()
     company_name = str(job_data.get("company_name", "")).strip()
@@ -139,7 +172,9 @@ def parse_job_data(job_data: Dict[str, Any]) -> str:
     if raw_text:
         parts.append(f"Raw Columns: {raw_text}")
 
-    return "\n".join(parts)
+    parsed = "\n".join(parts)
+    _emit_log(logging.DEBUG, "Prepared LLM text with %d fields", len(parts))
+    return parsed
 
 def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
     """
@@ -158,7 +193,10 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
     import ast as _ast
     import re as _re
 
+    _emit_log(logging.INFO, "Parsing job-reason pairs from input type %s", type(json_input).__name__)
+
     if json_input is None:
+        _emit_log(logging.WARNING, "Received empty json_input for job-reason parsing")
         return []
 
     def _to_list(obj: Any) -> List[Any]:
@@ -187,6 +225,7 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
             try:
                 return _ast.literal_eval(s)
             except Exception as exc:
+                _emit_log(logging.ERROR, "Failed to parse job-reason input as JSON or Python literal")
                 raise ValueError("Could not parse input as JSON or Python literal") from exc
         raise TypeError("Unsupported input type for parse_json_to_job_reason_pairs")
 
@@ -194,6 +233,7 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
     pairs: List[List[Any]] = []
     for item in items:
         if not isinstance(item, dict):
+            _emit_log(logging.DEBUG, "Skipping non-dict item in job-reason list: %s", type(item).__name__)
             continue
         job_val = None
         reasoning_val = None
@@ -222,6 +262,7 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
                     break
         pairs.append([job_val, reasoning_val])
 
+    _emit_log(logging.INFO, "Parsed %d job-reason pairs", len(pairs))
     return pairs
 
 
@@ -233,28 +274,36 @@ DATABASE_DIRNAME = "database"
 def get_database_dir() -> Path:
     db_dir = Path(__file__).resolve().parent / DATABASE_DIRNAME
     db_dir.mkdir(parents=True, exist_ok=True)
+    _emit_log(logging.DEBUG, "Ensured database directory exists at %s", db_dir)
     return db_dir
 
 def get_default_db_path() -> str:
-    return str(get_database_dir() / DEFAULT_DB_FILENAME)
+    path = str(get_database_dir() / DEFAULT_DB_FILENAME)
+    _emit_log(logging.DEBUG, "Resolved default DB path: %s", path)
+    return path
 
 def get_named_db_path(name: str, unwanted: bool = False) -> str:
     normalized_name = (name or "").strip()
     if not normalized_name:
+        _emit_log(logging.WARNING, "Empty name for named DB path; falling back to default DB")
         return get_default_db_path()
 
     suffix = "unwanted_jobs.db" if unwanted else "jobs.db"
-    return str(get_database_dir() / f"{normalized_name}{suffix}")
+    path = str(get_database_dir() / f"{normalized_name}{suffix}")
+    _emit_log(logging.INFO, "Resolved named DB path: %s (unwanted=%s)", path, unwanted)
+    return path
 
 def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     db_path = db_path or get_default_db_path()
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    _emit_log(logging.INFO, "Opening DB connection: %s", db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 def create_jobs_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
+    _emit_log(logging.DEBUG, "Ensuring jobs table and indexes exist")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS jobs (
@@ -286,16 +335,21 @@ def create_jobs_table(conn: sqlite3.Connection) -> None:
     cur.execute("PRAGMA table_info(jobs)")
     columns = [row[1] for row in cur.fetchall()]
     if "LLMComment" not in columns:
+        _emit_log(logging.INFO, "Applying schema migration: adding LLMComment column")
         cur.execute("ALTER TABLE jobs ADD COLUMN LLMComment TEXT")
 
     conn.commit()
+    _emit_log(logging.DEBUG, "jobs table setup complete")
 
 def job_exists(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> bool:
     cur = conn.cursor()
+    _emit_log(logging.DEBUG, "Checking duplicate job: %s", _summarize_job(job_data))
     job_url = (job_data.get("job_url") or "").strip()
     if job_url:
         cur.execute("SELECT 1 FROM jobs WHERE job_url = ? LIMIT 1", (job_url,))
-        return cur.fetchone() is not None
+        exists = cur.fetchone() is not None
+        _emit_log(logging.DEBUG, "Duplicate check by URL returned %s", exists)
+        return exists
 
     title = (job_data.get("job_title") or "").strip()
     company = (job_data.get("company_name") or "").strip()
@@ -304,7 +358,9 @@ def job_exists(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> bool:
         "SELECT 1 FROM jobs WHERE job_title = ? AND company_name = ? AND job_location = ? LIMIT 1",
         (title, company, location),
     )
-    return cur.fetchone() is not None
+    exists = cur.fetchone() is not None
+    _emit_log(logging.DEBUG, "Duplicate check by title/company/location returned %s", exists)
+    return exists
 
 def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bool:
     """
@@ -312,10 +368,12 @@ def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bo
 
     Returns True if the job was inserted, False if it was skipped because it exists.
     """
+    _emit_log(logging.INFO, "Attempting DB insert for job: %s", _summarize_job(job_data))
     conn = connect_db(db_path)
     try:
         create_jobs_table(conn)
         if job_exists(conn, job_data):
+            _emit_log(logging.INFO, "Skipped insert (duplicate job): %s", _summarize_job(job_data))
             return False
 
         cur = conn.cursor()
@@ -342,8 +400,15 @@ def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bo
             ),
         )
         conn.commit()
+        _emit_log(
+            logging.INFO,
+            "Inserted job id=%s: %s",
+            cur.lastrowid,
+            _summarize_job(job_data),
+        )
         return True
     finally:
+        _emit_log(logging.DEBUG, "Closing DB connection after add_job_to_db")
         conn.close()
 
 
@@ -376,6 +441,15 @@ def get_jobs_after_timestamp(
     unwanted: bool = False,
     limit: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
+    _emit_log(
+        logging.INFO,
+        "Fetching jobs after timestamp=%s, last_job_id=%s, name=%s, unwanted=%s, limit=%s",
+        unix_timestamp,
+        last_job_id,
+        name,
+        unwanted,
+        limit,
+    )
     if db_path is None and name:
         db_path = get_named_db_path(name, unwanted=unwanted)
 
@@ -406,8 +480,11 @@ def get_jobs_after_timestamp(
 
         cur.execute(query, params)
         rows = cur.fetchall()
-        return [_row_to_job_dict(row) for row in rows]
+        jobs = [_row_to_job_dict(row) for row in rows]
+        _emit_log(logging.INFO, "Fetched %d jobs from incremental query", len(jobs))
+        return jobs
     finally:
+        _emit_log(logging.DEBUG, "Closing DB connection after get_jobs_after_timestamp")
         conn.close()
 
 def get_all_jobs(
@@ -415,6 +492,12 @@ def get_all_jobs(
     name: Optional[str] = None,
     unwanted: bool = False,
 ) -> List[Dict[str, Any]]:
+    _emit_log(
+        logging.INFO,
+        "Fetching all jobs (name=%s, unwanted=%s)",
+        name,
+        unwanted,
+    )
     if db_path is None and name:
         db_path = get_named_db_path(name, unwanted=unwanted)
 
@@ -423,8 +506,11 @@ def get_all_jobs(
         cur = conn.cursor()
         cur.execute("SELECT * FROM jobs ORDER BY created_at DESC")
         rows = cur.fetchall()
-        return [_row_to_job_dict(row) for row in rows]
+        jobs = [_row_to_job_dict(row) for row in rows]
+        _emit_log(logging.INFO, "Fetched %d total jobs", len(jobs))
+        return jobs
     finally:
+        _emit_log(logging.DEBUG, "Closing DB connection after get_all_jobs")
         conn.close()
 
 
