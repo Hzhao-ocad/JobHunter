@@ -1,0 +1,16 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260629_140000_028488_eaadef05
+Started : 2026-06-29T19:00:00.029484+00:00
+============================================================
+[2026-06-29T19:01:06.976514+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-06-29T19:01:06.977511+00:00] SCRAPE | source=GetGeneralJobs | jobs=58
+[2026-06-29T19:01:06.978509+00:00] SCRAPE | source=GetAkimboJobs | jobs=55
+[2026-06-29T19:01:06.978509+00:00] SCRAPE | source=OCADU_Scrape | jobs=17
+[2026-06-29T19:01:06.979506+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-06-29T19:01:06.983001+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=229
+[2026-06-29T19:01:26.949107+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=1054 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:01:45.084233+00:00] LLM    | user=Joshua | batch=1 | msgs=2 | resp_len=1407 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:02:11.713200+00:00] LLM    | user=Joshua | batch=2 | msgs=2 | resp_len=2942 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:02:44.542387+00:00] LLM    | user=Joshua | batch=3 | msgs=2 | resp_len=1263 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:27:00.008193+00:00] SCRAPE | source=PIPELINE_START | jobs=0

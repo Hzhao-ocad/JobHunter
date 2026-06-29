@@ -306,7 +306,7 @@ def get_target_state(state: Dict[str, Any], target_name: str) -> Dict[str, Any]:
     target_state = targets.setdefault(
         target_name,
         {
-            "last_sent_timestamp": 0.0,
+            "last_sent_iso": "",
             "last_sent_job_id": 0,
             "recent_job_keys": [],
         },
@@ -320,6 +320,18 @@ def get_target_state(state: Dict[str, Any], target_name: str) -> Dict[str, Any]:
             target_state["last_sent_job_id"] = int(target_state.get("last_sent_job_id", 0))
         except (TypeError, ValueError):
             target_state["last_sent_job_id"] = 0
+
+    # Migrate old float-based timestamp to ISO string
+    if "last_sent_timestamp" in target_state and not target_state.get("last_sent_iso"):
+        old_ts = target_state.pop("last_sent_timestamp", 0.0)
+        if isinstance(old_ts, (int, float)) and old_ts > 0:
+            try:
+                from datetime import datetime, timezone
+                target_state["last_sent_iso"] = datetime.fromtimestamp(float(old_ts), tz=timezone.utc).isoformat()
+            except (ValueError, OSError):
+                target_state["last_sent_iso"] = ""
+        else:
+            target_state["last_sent_iso"] = ""
 
     return target_state
 
@@ -512,11 +524,11 @@ class JobAnnouncementBot(discord.Client):
                 continue
 
             target_state = get_target_state(self.state, target.name)
-            last_sent_timestamp = float(target_state.get("last_sent_timestamp", 0.0))
+            last_sent_iso = str(target_state.get("last_sent_iso", "") or "")
             last_sent_job_id = int(target_state.get("last_sent_job_id", 0))
 
             jobs = get_jobs_after_timestamp(
-                unix_timestamp=last_sent_timestamp,
+                since_iso=last_sent_iso or None,
                 last_job_id=last_sent_job_id,
                 name=target.user_db_name,
                 unwanted=False,
@@ -578,31 +590,39 @@ class JobAnnouncementBot(discord.Client):
             await asyncio.sleep(self.config.message_rate_limit_seconds)
 
             recent_keys.add(dedupe_key)
-            self._update_target_state_after_send(target_state, recent_keys, job)
+
+        # Update state once after ALL jobs are sent (avoids partial state on error)
+        if jobs_to_send:
+            self._update_target_state_after_send(target_state, recent_keys, jobs_to_send)
             save_state(self.config.state_file, self.state)
 
     def _update_target_state_after_send(
         self,
         target_state: Dict[str, Any],
         recent_keys: set,
-        job: Dict[str, Any],
+        jobs_sent: List[tuple[Dict[str, Any], str]],
     ) -> None:
-        created_at = str(job.get("created_at") or "")
-        sent_timestamp = _parse_iso_to_timestamp(created_at)
-        try:
-            sent_job_id = int(job.get("id") or 0)
-        except (TypeError, ValueError):
-            sent_job_id = 0
+        # Find the maximum created_at (ISO string) and id among sent jobs
+        max_iso = str(target_state.get("last_sent_iso", "") or "")
+        max_job_id = int(target_state.get("last_sent_job_id", 0))
 
-        current_last_timestamp = float(target_state.get("last_sent_timestamp", 0.0))
-        current_last_job_id = int(target_state.get("last_sent_job_id", 0))
+        for job, _dedupe_key in jobs_sent:
+            created_at = str(job.get("created_at") or "")
+            try:
+                sent_job_id = int(job.get("id") or 0)
+            except (TypeError, ValueError):
+                sent_job_id = 0
 
-        if sent_timestamp is not None:
-            if sent_timestamp > current_last_timestamp:
-                target_state["last_sent_timestamp"] = sent_timestamp
-                target_state["last_sent_job_id"] = sent_job_id
-            elif sent_timestamp == current_last_timestamp and sent_job_id > current_last_job_id:
-                target_state["last_sent_job_id"] = sent_job_id
+            if created_at:
+                if not max_iso or created_at > max_iso:
+                    max_iso = created_at
+                    max_job_id = sent_job_id
+                elif created_at == max_iso and sent_job_id > max_job_id:
+                    max_job_id = sent_job_id
+
+        if max_iso:
+            target_state["last_sent_iso"] = max_iso
+        target_state["last_sent_job_id"] = max_job_id
 
         recent_list = list(recent_keys)
         if len(recent_list) > STATE_CACHE_SIZE:

@@ -12,10 +12,11 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import LLMLayer
+from JobHunterLogger import get_logger, start_diagnostic_run, end_diagnostic_run
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "discord_config.json"
-DEFAULT_RUN_TIMES = "03:00,08:00,11:00,14:00,14:27,17:00,22:00"
+DEFAULT_RUN_TIMES = "03:00,08:00,10:42,11:00,14:00,14:27,17:00,22:00"
 
 
 def _normalize_name_need(raw_name_need: object) -> Dict[str, Dict[str, str]]:
@@ -166,7 +167,17 @@ def _get_next_run(now: datetime, run_times: List[day_time]) -> datetime:
 
 
 def run_pipeline_once(config_path: Path) -> None:
+	_diag_logger = get_logger()
 	user_names, user_needs = load_user_needs(config_path)
+	_diag_logger.log_job_search_results(
+		"PIPELINE_START",
+		[],
+		extra={
+			"user_count": len(user_names),
+			"user_names": user_names,
+			"config_path": str(config_path),
+		},
+	)
 	job_finder = LLMLayer.LLMClient()
 	LLMLayer.FindMeSomeJobs(user_needs, user_names, job_finder)
 

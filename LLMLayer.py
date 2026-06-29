@@ -7,6 +7,7 @@ from JobScrapper.ut_jobs_scraper import getUoftjobs
 from GeneralJobSites import GetGeneralJobs
 from JobScrapper.Akimbo import GetAkimboJobs
 from JobScrapper.OCADU import OCADU_Scrape
+from JobScrapper.InteractiveImmersive import GetInteractiveImmersiveJobs
 from openai import OpenAI
 from JobStruct import (
     parse_job_data,
@@ -16,7 +17,9 @@ from JobStruct import (
     create_jobs_table,
     get_named_db_path,
     job_exists,
+    compute_dedupe_key,
 )
+from JobHunterLogger import get_logger, start_diagnostic_run, end_diagnostic_run
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -38,7 +41,7 @@ class LLMClient:
             case "deepseek":
                 self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
                 self.base_url = "https://api.deepseek.com/v1/chat/completions"
-                self.model = "deepseek-v4-flash"  # DeepSeek 推荐使用专门的模型名称
+                self.model = "deepseek-v4-pro"  # DeepSeek 推荐使用专门的模型名称
     
     def set_model(self, model: str):
         """切换模型"""
@@ -50,6 +53,9 @@ class LLMClient:
         messages: Optional[List[Dict]] = None,
         user_input: Optional[str] = None,
         system_prompt: Optional[str] = None,
+        *,
+        _log_user_name: str = "",
+        _log_batch_index: int = 0,
     ) -> Dict:
         """
         发送聊天请求 (纯 Chat 模式，不使用 Tool Calling)
@@ -66,6 +72,9 @@ class LLMClient:
             if not user_input:
                 raise ValueError("messages 或 user_input 必须提供其一。")
             messages = self.build_messages(user_input, system_prompt)
+
+        # --- Diagnostic logging: capture raw request ---
+        _diag_logger = get_logger()
 
         match self.provider:
             case "copilot":
@@ -86,9 +95,9 @@ class LLMClient:
                 try:
                     response = requests.post(self.base_url, headers=headers, json=payload, timeout=120)
                     response.raise_for_status()
-                    return response.json()
+                    result = response.json()
                 except requests.exceptions.RequestException as e:
-                    return {"error": str(e)}
+                    result = {"error": str(e)}
             
             case "deepseek":
                 
@@ -103,7 +112,7 @@ class LLMClient:
                         messages=messages
                     )
                     # Convert to dict format to match expected response structure
-                    return {
+                    result = {
                         "choices": [
                             {
                                 "message": {
@@ -113,7 +122,19 @@ class LLMClient:
                         ]
                     }
                 except Exception as e:
-                    return {"error": str(e)}
+                    result = {"error": str(e)}
+
+        # --- Diagnostic logging: capture every LLM exchange ---
+        _diag_logger.log_llm_chat(
+            messages=messages,
+            response=result,
+            user_name=_log_user_name,
+            batch_index=_log_batch_index,
+            model=self.model,
+            provider=self.provider,
+        )
+
+        return result
     
     def get_default_system_prompt(self) -> str:
         """返回 JobFinder 机器人默认的系统提示。"""
@@ -148,12 +169,53 @@ class LLMClient:
 
 def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["Thea"], jobFinder: LLMClient = None):
 
+    # --- Diagnostic logging: start a run for this pipeline invocation ---
+    _diag_logger = get_logger()
+    start_diagnostic_run()
+
     #get jobs in general for everybody
     Uoftjobs = getUoftjobs()
     GeneralJobs = GetGeneralJobs()
     AkimboJobs = GetAkimboJobs()
     OCADUJobs = OCADU_Scrape()
-    alljobs = Uoftjobs + GeneralJobs + AkimboJobs + OCADUJobs #all jobs!
+    InteractiveImmersiveJobs = GetInteractiveImmersiveJobs()
+
+    # --- Diagnostic logging: log every scraper result set ---
+    _diag_logger.log_job_search_results("getUoftjobs", Uoftjobs)
+    _diag_logger.log_job_search_results("GetGeneralJobs", GeneralJobs)
+    _diag_logger.log_job_search_results("GetAkimboJobs", AkimboJobs)
+    _diag_logger.log_job_search_results("OCADU_Scrape", OCADUJobs)
+    _diag_logger.log_job_search_results("GetInteractiveImmersiveJobs", InteractiveImmersiveJobs)
+
+    alljobs = Uoftjobs + GeneralJobs + AkimboJobs + OCADUJobs + InteractiveImmersiveJobs #all jobs!
+
+    # Deduplicate across scrapers by normalized identity (title+company+location),
+    # keeping the first occurrence (which has the richest metadata).
+    seen_keys: Dict[str, int] = {}
+    deduped_jobs = []
+    for job in alljobs:
+        dk = compute_dedupe_key(job)
+        if dk not in seen_keys:
+            seen_keys[dk] = len(deduped_jobs)
+            deduped_jobs.append(job)
+    if len(deduped_jobs) < len(alljobs):
+        print(f"Deduplicated {len(alljobs) - len(deduped_jobs)} cross-scraper duplicate(s), {len(deduped_jobs)} unique jobs remain.")
+    alljobs = deduped_jobs
+
+    # --- Diagnostic logging: log deduplicated combined result ---
+    _diag_logger.log_job_search_results(
+        "ALL_SCRAPERS_COMBINED_DEDUPED",
+        alljobs,
+        extra={
+            "total_before_dedupe": (
+                len(Uoftjobs)
+                + len(GeneralJobs)
+                + len(AkimboJobs)
+                + len(OCADUJobs)
+                + len(InteractiveImmersiveJobs)
+            )
+        },
+    )
     
 
     for i, UserNeed in enumerate(UserNeeds):
@@ -209,7 +271,9 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
         UnwantedJobs = []
         recommended_index_to_reason = {}
 
-        batch_size = 10 
+        batch_size = 10
+        # --- Diagnostic: capture current user name before inner loop shadows i ---
+        _current_user_name = UserNames[i]
 
         for start_index in range(0, len(LLMReadibleJobs), batch_size):
             batch = LLMReadibleJobs[start_index : start_index + batch_size]
@@ -220,7 +284,12 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
             for i, job in enumerate(batch, start=start_index):
                 user_query += f"\nJob Index {i}:\n{job}\n"
             #获得ai推荐的job index
-            response = jobFinder.chat(user_input=user_query, system_prompt=systemPrompt)
+            response = jobFinder.chat(
+                user_input=user_query,
+                system_prompt=systemPrompt,
+                _log_user_name=_current_user_name,
+                _log_batch_index=start_index // batch_size,
+            )
             
             recommended_jobs = parse_json_to_job_reason_pairs(jobFinder.get_response_content(response))
             for job_index, reasoning in recommended_jobs:
@@ -239,6 +308,15 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
             else:
                 job["LLMComment"] = "Not recommended by LLM"
                 UnwantedJobs.append(job)
+
+        # --- Diagnostic logging: final results per user ---
+        _diag_logger.log_final_results(
+            user_name=_current_user_name,
+            potential_jobs=PotentialJobs,
+            unwanted_jobs=UnwantedJobs,
+            total_input_jobs=len(alljobs_copy),
+        )
+
         #inser potential jobs 
         for job in PotentialJobs:
             inserted = add_job_to_db(job, db_path=MAIN_DB_PATH) # add the potential jobs to the database
@@ -253,4 +331,6 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
                 print(f"Inserted unwanted job: {job.get('job_title', 'No title')}")
             else:
                 print(f"Failed to insert unwanted job: {job.get('job_title', 'No title')}")
-            
+
+    # --- Diagnostic logging: end the run ---
+    end_diagnostic_run()

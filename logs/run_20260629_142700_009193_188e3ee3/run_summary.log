@@ -1,0 +1,43 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260629_142700_009193_188e3ee3
+Started : 2026-06-29T19:27:00.010187+00:00
+============================================================
+[2026-06-29T19:28:08.336531+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-06-29T19:28:08.337528+00:00] SCRAPE | source=GetGeneralJobs | jobs=58
+[2026-06-29T19:28:08.337528+00:00] SCRAPE | source=GetAkimboJobs | jobs=55
+[2026-06-29T19:28:08.338525+00:00] SCRAPE | source=OCADU_Scrape | jobs=17
+[2026-06-29T19:28:08.340522+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-06-29T19:28:08.346505+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=228
+[2026-06-29T19:28:27.508250+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=1464 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:28:44.684924+00:00] LLM    | user=Joshua | batch=1 | msgs=2 | resp_len=2650 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:29:11.965142+00:00] LLM    | user=Joshua | batch=2 | msgs=2 | resp_len=2694 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:29:40.998987+00:00] LLM    | user=Joshua | batch=3 | msgs=2 | resp_len=1232 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:30:15.446122+00:00] LLM    | user=Joshua | batch=4 | msgs=2 | resp_len=3149 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:30:30.587620+00:00] LLM    | user=Joshua | batch=5 | msgs=2 | resp_len=1192 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:30:30.598596+00:00] RESULT | user=Joshua | potential=29 | unwanted=25 | total_input=54
+[2026-06-29T19:30:55.404237+00:00] LLM    | user=Harry | batch=0 | msgs=2 | resp_len=1182 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:31:15.651844+00:00] LLM    | user=Harry | batch=1 | msgs=2 | resp_len=2091 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:31:50.821764+00:00] LLM    | user=Harry | batch=2 | msgs=2 | resp_len=2222 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:32:13.059379+00:00] LLM    | user=Harry | batch=3 | msgs=2 | resp_len=1368 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:32:37.307517+00:00] LLM    | user=Harry | batch=4 | msgs=2 | resp_len=1328 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:32:52.734251+00:00] LLM    | user=Harry | batch=5 | msgs=2 | resp_len=982 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:32:52.738241+00:00] RESULT | user=Harry | potential=23 | unwanted=31 | total_input=54
+[2026-06-29T19:33:12.828799+00:00] LLM    | user=Thea | batch=0 | msgs=2 | resp_len=1386 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:33:53.724413+00:00] LLM    | user=Thea | batch=1 | msgs=2 | resp_len=813 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:34:19.055877+00:00] LLM    | user=Thea | batch=2 | msgs=2 | resp_len=1352 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:34:39.452313+00:00] LLM    | user=Thea | batch=3 | msgs=2 | resp_len=1310 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:34:55.031639+00:00] LLM    | user=Thea | batch=4 | msgs=2 | resp_len=1879 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:35:13.795850+00:00] LLM    | user=Thea | batch=5 | msgs=2 | resp_len=872 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:35:13.800836+00:00] RESULT | user=Thea | potential=21 | unwanted=33 | total_input=54
+[2026-06-29T19:35:38.944102+00:00] LLM    | user=Golnoushh | batch=0 | msgs=2 | resp_len=2095 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:36:08.919511+00:00] LLM    | user=Golnoushh | batch=1 | msgs=2 | resp_len=1118 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:36:34.385388+00:00] LLM    | user=Golnoushh | batch=2 | msgs=2 | resp_len=1136 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:37:03.648213+00:00] LLM    | user=Golnoushh | batch=3 | msgs=2 | resp_len=1657 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:37:27.471486+00:00] LLM    | user=Golnoushh | batch=4 | msgs=2 | resp_len=1106 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:37:40.326103+00:00] LLM    | user=Golnoushh | batch=5 | msgs=2 | resp_len=653 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-06-29T19:37:40.331089+00:00] RESULT | user=Golnoushh | potential=20 | unwanted=34 | total_input=54
+
+============================================================
+Run ended: 2026-06-29T19:37:41.910864+00:00
+============================================================

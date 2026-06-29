@@ -9,6 +9,7 @@ functions used by scraper modules.
 import re
 import sqlite3
 import json
+import hashlib
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
@@ -301,6 +302,15 @@ def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     return conn
 
+def compute_dedupe_key(job_data: Dict[str, Any]) -> str:
+    """Produce a stable, normalized deduplication key from core job identity fields."""
+    title = str(job_data.get("job_title") or "").strip().lower()
+    company = str(job_data.get("company_name") or "").strip().lower()
+    location = str(job_data.get("job_location") or "").strip().lower()
+    normalized = f"{title}|{company}|{location}"
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def create_jobs_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     _emit_log(logging.DEBUG, "Ensuring jobs table and indexes exist")
@@ -320,7 +330,8 @@ def create_jobs_table(conn: sqlite3.Connection) -> None:
             source TEXT,
             LLMComment TEXT,
             raw_columns TEXT,
-            created_at TEXT
+            created_at TEXT,
+            dedupe_key TEXT
         )
         """
     )
@@ -337,6 +348,69 @@ def create_jobs_table(conn: sqlite3.Connection) -> None:
     if "LLMComment" not in columns:
         _emit_log(logging.INFO, "Applying schema migration: adding LLMComment column")
         cur.execute("ALTER TABLE jobs ADD COLUMN LLMComment TEXT")
+    if "dedupe_key" not in columns:
+        _emit_log(logging.INFO, "Applying schema migration: adding dedupe_key column")
+        cur.execute("ALTER TABLE jobs ADD COLUMN dedupe_key TEXT")
+        # Re-read columns after ALTER to confirm the column now exists
+        cur.execute("PRAGMA table_info(jobs)")
+        columns = [row[1] for row in cur.fetchall()]
+
+    # All operations below require dedupe_key to exist — guard defensively
+    if "dedupe_key" in columns:
+        # Before populating dedupe_key for NULL rows, drop any existing unique
+        # index on dedupe_key so we can safely populate duplicates, then
+        # deduplicate and recreate the index.
+        cur.execute("DROP INDEX IF EXISTS idx_jobs_dedupe_key")
+
+        # Populate dedupe_key for any rows that still have NULL values
+        cur.execute("SELECT id, job_title, company_name, job_location FROM jobs WHERE dedupe_key IS NULL")
+        existing_rows = cur.fetchall()
+        if existing_rows:
+            for row in existing_rows:
+                fake_job = {
+                    "job_title": row["job_title"] or "",
+                    "company_name": row["company_name"] or "",
+                    "job_location": row["job_location"] or "",
+                }
+                dk = compute_dedupe_key(fake_job)
+                cur.execute("UPDATE jobs SET dedupe_key = ? WHERE id = ?", (dk, row["id"]))
+            _emit_log(logging.INFO, "Populated dedupe_key for %d existing rows", len(existing_rows))
+
+        # Remove duplicate rows that share the same dedupe_key (cross-scraper
+        # dupes that slipped in before the unique index existed). Keep the
+        # oldest row (lowest id) per key.
+        cur.execute(
+            """
+            SELECT dedupe_key, COUNT(*) AS cnt, MIN(id) AS keep_id
+            FROM jobs
+            WHERE dedupe_key IS NOT NULL
+            GROUP BY dedupe_key
+            HAVING cnt > 1
+            """
+        )
+        dup_groups = cur.fetchall()
+        removed_total = 0
+        for group in dup_groups:
+            dk = group["dedupe_key"]
+            keep_id = group["keep_id"]
+            cur.execute(
+                "DELETE FROM jobs WHERE dedupe_key = ? AND id != ?",
+                (dk, keep_id),
+            )
+            removed_total += cur.rowcount
+        if removed_total > 0:
+            _emit_log(logging.INFO, "Removed %d duplicate row(s) via dedupe_key", removed_total)
+
+        # Create the dedupe index AFTER ensuring the column exists and duplicates
+        # are cleaned up (handles both fresh tables and migrated ones).
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_dedupe_key
+            ON jobs (dedupe_key)
+            """
+        )
+    else:
+        _emit_log(logging.ERROR, "dedupe_key column is missing and could not be added — skipping dedupe index")
 
     conn.commit()
     _emit_log(logging.DEBUG, "jobs table setup complete")
@@ -347,9 +421,20 @@ def job_exists(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> bool:
     job_url = (job_data.get("job_url") or "").strip()
     if job_url:
         cur.execute("SELECT 1 FROM jobs WHERE job_url = ? LIMIT 1", (job_url,))
-        exists = cur.fetchone() is not None
-        _emit_log(logging.DEBUG, "Duplicate check by URL returned %s", exists)
-        return exists
+        if cur.fetchone() is not None:
+            _emit_log(logging.DEBUG, "Duplicate check by URL returned True")
+            return True
+
+    # Fallback: check by normalized identity hash (catches cross-scraper duplicates)
+    try:
+        dedupe_key = compute_dedupe_key(job_data)
+        cur.execute("SELECT 1 FROM jobs WHERE dedupe_key = ? LIMIT 1", (dedupe_key,))
+        if cur.fetchone() is not None:
+            _emit_log(logging.DEBUG, "Duplicate check by dedupe_key returned True")
+            return True
+    except sqlite3.OperationalError:
+        # dedupe_key column may not exist yet in older databases
+        _emit_log(logging.DEBUG, "dedupe_key column not available, falling back to title/company/location check")
 
     title = (job_data.get("job_title") or "").strip()
     company = (job_data.get("company_name") or "").strip()
@@ -377,11 +462,12 @@ def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bo
             return False
 
         cur = conn.cursor()
+        dedupe_key = compute_dedupe_key(job_data)
         cur.execute(
             """
             INSERT INTO jobs
-            (job_title, job_location, job_description, job_url, date, type, isRemote, salary, company_name, source, LLMComment, raw_columns, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (job_title, job_location, job_description, job_url, date, type, isRemote, salary, company_name, source, LLMComment, raw_columns, created_at, dedupe_key)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 job_data.get("job_title"),
@@ -397,6 +483,7 @@ def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bo
                 job_data.get("LLMComment"),
                 json.dumps(job_data.get("raw_columns", []), ensure_ascii=False),
                 datetime.now(timezone.utc).isoformat(),
+                dedupe_key,
             ),
         )
         conn.commit()
@@ -429,12 +516,14 @@ def _row_to_job_dict(row: sqlite3.Row) -> Dict[str, Any]:
         "LLMComment": row["LLMComment"],
         "raw_columns": raw_columns,
         "created_at": row["created_at"],
+        "dedupe_key": row["dedupe_key"],
     }
 
 
 def get_jobs_after_timestamp(
     *,
-    unix_timestamp: float,
+    unix_timestamp: float = 0.0,
+    since_iso: Optional[str] = None,
     last_job_id: Optional[int] = None,
     db_path: Optional[str] = None,
     name: Optional[str] = None,
@@ -443,7 +532,8 @@ def get_jobs_after_timestamp(
 ) -> List[Dict[str, Any]]:
     _emit_log(
         logging.INFO,
-        "Fetching jobs after timestamp=%s, last_job_id=%s, name=%s, unwanted=%s, limit=%s",
+        "Fetching jobs after since_iso=%s, unix_timestamp=%s, last_job_id=%s, name=%s, unwanted=%s, limit=%s",
+        since_iso,
         unix_timestamp,
         last_job_id,
         name,
@@ -453,7 +543,11 @@ def get_jobs_after_timestamp(
     if db_path is None and name:
         db_path = get_named_db_path(name, unwanted=unwanted)
 
-    since_iso = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).isoformat()
+    # Prefer explicit ISO string to avoid float precision loss on round-trip
+    if since_iso:
+        since_iso_value = since_iso
+    else:
+        since_iso_value = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).isoformat()
 
     conn = connect_db(db_path)
     try:
@@ -463,14 +557,14 @@ def get_jobs_after_timestamp(
         # Strictly advance beyond the last sent checkpoint to avoid re-announcing the
         # boundary row. When timestamps are equal, fall back to row id ordering.
         query = "SELECT * FROM jobs WHERE created_at > ?"
-        params: List[Any] = [since_iso]
+        params: List[Any] = [since_iso_value]
 
         if isinstance(last_job_id, int) and last_job_id > 0:
             query = (
                 "SELECT * FROM jobs "
                 "WHERE created_at > ? OR (created_at = ? AND id > ?)"
             )
-            params = [since_iso, since_iso, last_job_id]
+            params = [since_iso_value, since_iso_value, last_job_id]
 
         query += " ORDER BY created_at ASC, id ASC"
 
