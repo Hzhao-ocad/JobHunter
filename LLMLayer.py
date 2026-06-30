@@ -15,9 +15,11 @@ from JobStruct import (
     add_job_to_db,
     connect_db,
     create_jobs_table,
-    get_named_db_path,
-    job_exists,
+    profile_job_exists,
     compute_dedupe_key,
+    upsert_profile,
+    STATUS_NEW,
+    STATUS_UNWANTED,
 )
 from JobHunterLogger import get_logger, start_diagnostic_run, end_diagnostic_run
 
@@ -237,26 +239,23 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
             '''
             )
 
-        MAIN_DB_PATH = get_named_db_path(UserNames[i], unwanted=False)
-        UNWANTED_DB_PATH = get_named_db_path(UserNames[i], unwanted=True)
+        current_profile_name = UserNames[i]
+        upsert_profile(current_profile_name, need=UserNeed)
 
-        # 先过滤掉已经在主库或unwanted库里的岗位
-        main_conn = connect_db(MAIN_DB_PATH)
-        unwanted_conn = connect_db(UNWANTED_DB_PATH)
+        # Filter out jobs that already have a status for this profile.
+        conn = connect_db()
         try:
-            create_jobs_table(main_conn)
-            create_jobs_table(unwanted_conn)
+            create_jobs_table(conn)
 
             total_fetched_jobs = len(alljobs_copy)
             alljobs_copy = [
                 job
                 for job in alljobs_copy
-                if not job_exists(main_conn, job) and not job_exists(unwanted_conn, job)
+                if not profile_job_exists(conn, current_profile_name, job)
             ]
             print(f"Filtered out {total_fetched_jobs - len(alljobs_copy)} jobs already stored in DBs.")
         finally:
-            main_conn.close()
-            unwanted_conn.close()
+            conn.close()
 
         if not alljobs_copy:
             print("No new jobs to process after DB filtering.")
@@ -273,7 +272,7 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
 
         batch_size = 10
         # --- Diagnostic: capture current user name before inner loop shadows i ---
-        _current_user_name = UserNames[i]
+        _current_user_name = current_profile_name
 
         for start_index in range(0, len(LLMReadibleJobs), batch_size):
             batch = LLMReadibleJobs[start_index : start_index + batch_size]
@@ -319,18 +318,18 @@ def FindMeSomeJobs(UserNeeds: list = ["ART in general"], UserNames: list = ["The
 
         #inser potential jobs 
         for job in PotentialJobs:
-            inserted = add_job_to_db(job, db_path=MAIN_DB_PATH) # add the potential jobs to the database
+            inserted = add_job_to_db(job, profile_name=_current_user_name, status=STATUS_NEW)
             if inserted:
-                print(f"Inserted job with LLM comment: {job.get('LLMComment', 'No comment')}")
+                print(f"Inserted new job with LLM comment: {job.get('LLMComment', 'No comment')}")
             else:
-                print(f"Failed to insert job with LLM comment: {job.get('LLMComment', 'No comment')}")
+                print(f"Skipped existing new job with LLM comment: {job.get('LLMComment', 'No comment')}")
         #inser unwanted jobs so it doesn't run through the LLM again.
         for job in UnwantedJobs:
-            inserted = add_job_to_db(job, db_path=UNWANTED_DB_PATH)
+            inserted = add_job_to_db(job, profile_name=_current_user_name, status=STATUS_UNWANTED)
             if inserted:
                 print(f"Inserted unwanted job: {job.get('job_title', 'No title')}")
             else:
-                print(f"Failed to insert unwanted job: {job.get('job_title', 'No title')}")
+                print(f"Skipped existing unwanted job: {job.get('job_title', 'No title')}")
 
     # --- Diagnostic logging: end the run ---
     end_diagnostic_run()

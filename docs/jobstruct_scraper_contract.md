@@ -13,10 +13,10 @@ The pipeline in `LLMLayer.FindMeSomeJobs` does this:
    `GetAkimboJobs()`, and `OCADU_Scrape()`.
 2. Combines all returned jobs into one list.
 3. Deduplicates jobs by `JobStruct.compute_dedupe_key(job)`.
-4. Filters out jobs already present in each user's main and unwanted databases.
+4. Filters out jobs that already have a status row for each user's profile.
 5. Converts each job to LLM-readable text with `JobStruct.parse_job_data(job)`.
-6. Stores recommended jobs in the user's main database and non-recommended jobs
-   in the user's unwanted database with `JobStruct.add_job_to_db(job, db_path)`.
+6. Stores LLM-relevant jobs as `new` profile jobs and non-recommended jobs as
+   `unwanted` profile jobs with `JobStruct.add_job_to_db(...)`.
 
 Scrapers should return data that is already normalized enough for steps 3-6 to
 work without special handling.
@@ -147,14 +147,13 @@ real boolean.
 
 ## Database Compatibility
 
-All user databases live in `database/`.
+All JobHunter data now lives in one shared SQLite database:
 
-`get_named_db_path(name, unwanted=False)` returns:
+```text
+database/jobhunter.db
+```
 
-- main DB: `database/{name}jobs.db`
-- unwanted DB: `database/{name}unwanted_jobs.db`
-
-The `jobs` table contains:
+The `jobs` table stores canonical scraped jobs once:
 
 ```sql
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,18 +167,52 @@ isRemote INTEGER,
 salary TEXT,
 company_name TEXT,
 source TEXT,
-LLMComment TEXT,
 raw_columns TEXT,
-created_at TEXT,
-dedupe_key TEXT
+created_at TEXT NOT NULL,
+updated_at TEXT NOT NULL,
+dedupe_key TEXT NOT NULL
+```
+
+The `profiles` table stores one row per person/profile:
+
+```sql
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT NOT NULL UNIQUE,
+discord_user_id TEXT,
+need TEXT,
+created_at TEXT NOT NULL,
+updated_at TEXT NOT NULL
+```
+
+The `profile_jobs` table stores the per-person job state:
+
+```sql
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+profile_id INTEGER NOT NULL,
+job_id INTEGER NOT NULL,
+status TEXT NOT NULL,
+LLMComment TEXT,
+created_at TEXT NOT NULL,
+updated_at TEXT NOT NULL,
+pushed_at TEXT
 ```
 
 Notes:
 
 - `isRemote` is stored as `1` or `0`.
 - `raw_columns` is stored with `json.dumps(..., ensure_ascii=False)`.
-- `created_at` is generated at insert time in UTC ISO format.
+- `jobs.created_at` is generated when a canonical job is first stored.
+- `profile_jobs.created_at` is generated when a profile first receives that job.
 - `dedupe_key` is generated from normalized title, company, and location.
+- `profile_jobs.status` is one of:
+  - `new`: relevant to the user but not yet pushed by the Discord bot.
+  - `recommended`: already pushed to the user by the Discord bot.
+  - `unwanted`: not relevant to that user.
+- `LLMComment` is stored on `profile_jobs`, because each person can receive a
+  different recommendation reason for the same canonical job.
+- Legacy `database/{name}jobs.db` rows are imported as `recommended` and
+  `database/{name}unwanted_jobs.db` rows are imported as `unwanted` the first
+  time the shared DB schema is initialized.
 
 ## Duplicate Detection
 
@@ -267,4 +300,3 @@ Before considering a scraper done:
 - The scraper handles an empty result set by returning `[]`.
 - Network failures either raise a clear exception or are handled consistently
   with the style of existing scrapers.
-

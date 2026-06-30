@@ -469,6 +469,20 @@ else:
             default=available_sources,
         )
 
+    available_statuses = []
+    if "status" in df.columns:
+        valid_statuses = [str(s).strip() for s in df["status"].dropna() if str(s).strip()]
+        if valid_statuses:
+            available_statuses = sorted(list(set(valid_statuses)))
+
+    selected_statuses = []
+    if available_statuses:
+        selected_statuses = st.sidebar.multiselect(
+            "Status",
+            options=available_statuses,
+            default=available_statuses,
+        )
+
     # --- Apply Filters ---
     filtered_df = df.copy()
 
@@ -497,6 +511,12 @@ else:
         elif selected_sources:
             filtered_df = filtered_df[filtered_df["source"].astype(str).isin(selected_sources)]
 
+    if "status" in filtered_df.columns:
+        if available_statuses and not selected_statuses:
+            filtered_df = filtered_df.iloc[0:0]
+        elif selected_statuses:
+            filtered_df = filtered_df[filtered_df["status"].astype(str).isin(selected_statuses)]
+
     if remote_only and "isRemote" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["isRemote"].apply(is_remote_value)]
 
@@ -509,6 +529,10 @@ else:
     if "source" in filtered_df.columns and not filtered_df.empty:
         source_count = int(filtered_df["source"].astype(str).nunique())
 
+    pending_new_count = 0
+    if "status" in filtered_df.columns and not filtered_df.empty:
+        pending_new_count = int((filtered_df["status"].astype(str) == "new").sum())
+
     st.markdown('<div class="section-label">Snapshot</div>', unsafe_allow_html=True)
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -518,7 +542,7 @@ else:
     with m3:
         render_metric("Filtered Out", f"{(len(df) - len(filtered_df)):,}", tone="warm")
     with m4:
-        render_metric("Active Sources", f"{source_count:,}")
+        render_metric("New Pending", f"{pending_new_count:,}", tone="accent")
 
     # --- Views ---
     st.markdown('<div class="section-label">Pipeline Views</div>', unsafe_allow_html=True)
@@ -526,6 +550,7 @@ else:
 
     with tab_grid:
         display_columns = [
+            "status",
             "job_title",
             "date",
             "company_name",
@@ -604,6 +629,7 @@ else:
             salary = escape(clean_text(selected_job.get("salary"), "Salary unlisted"))
             role_type = escape(clean_text(selected_job.get("type"), "Type not listed"))
             source = escape(clean_text(selected_job.get("source"), "Unknown source"))
+            status = escape(clean_text(selected_job.get("status"), "Status unknown"))
             remote_flag = "Remote" if is_remote_value(selected_job.get("isRemote")) else "On-site"
             llm_tag = escape(clean_text(selected_job.get("LLMComment"), "No AI comment available."))
             job_url = safe_job_url(selected_job.get("job_url"))
@@ -625,6 +651,7 @@ else:
                     <span class="meta-chip">Type: {role_type}</span>
                     <span class="meta-chip">Mode: {remote_flag}</span>
                     <span class="meta-chip">Source: {source}</span>
+                    <span class="meta-chip">Status: {status}</span>
                 </div>
                 <div class="insight-panel">
                     <div class="insight-label">AI Insight</div>
@@ -645,6 +672,7 @@ else:
             st.info("No jobs available in the database for this profile.")
         else:
             all_display_columns = [
+                "status",
                 "date",
                 "job_title",
                 "company_name",

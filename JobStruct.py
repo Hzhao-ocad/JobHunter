@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-Job data schema and normalization helpers.
+Job data schema, normalization helpers, and SQLite persistence.
 
-This module defines the normalized job dictionary structure and helper
-functions used by scraper modules.
+The persistence layer uses one shared SQLite database:
+
+- jobs: one canonical row per scraped job
+- profiles: one row per person/profile
+- profile_jobs: profile-specific status and LLM comment for each job
 """
 
+import hashlib
+import json
+import logging
 import re
 import sqlite3
-import json
-import hashlib
-import logging
-from pathlib import Path
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence
 
 
 DEFAULT_LLM_COMMENT = "LLM didn't provide any comment"
@@ -113,12 +116,9 @@ def build_job_data(
             "raw_columns": raw_columns or [],
         }
     )
-    _emit_log(
-        logging.DEBUG,
-        "Normalized job record: %s",
-        _summarize_job(data),
-    )
+    _emit_log(logging.DEBUG, "Normalized job record: %s", _summarize_job(data))
     return data
+
 
 def parse_job_data(job_data: Dict[str, Any]) -> str:
     """Convert a normalized job dictionary into a single text block for LLM consumption."""
@@ -177,21 +177,16 @@ def parse_job_data(job_data: Dict[str, Any]) -> str:
     _emit_log(logging.DEBUG, "Prepared LLM text with %d fields", len(parts))
     return parsed
 
+
 def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
     """
-    Parse a JSON-format dataset (string or Python object) and return a list of
-    [job, reasoning] pairs.
+    Parse a JSON-format dataset and return [job, reasoning] pairs.
 
-    Accepts:
-    - a JSON string representing a list of objects
-    - a Python list/dict as returned by json.loads or other code
-
-    This function is tolerant of surrounding text, single dict inputs, and
-    common key name variations (e.g. 'Job', 'job', 'id' and 'Reasoning',
-    'reason', 'explanation').
+    Accepts JSON strings, Python lists/dicts, and common key variations such as
+    Job/job/id plus Reasoning/reason/explanation.
     """
-    import json as _json
     import ast as _ast
+    import json as _json
     import re as _re
 
     _emit_log(logging.INFO, "Parsing job-reason pairs from input type %s", type(json_input).__name__)
@@ -206,25 +201,21 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
         if isinstance(obj, dict):
             return [obj]
         if isinstance(obj, str):
-            s = obj.strip()
-            if not s:
+            text = obj.strip()
+            if not text:
                 return []
-            # try direct JSON parse
             try:
-                return _json.loads(s)
+                return _json.loads(text)
             except Exception:
                 pass
-            # extract a JSON array substring if present
-            m = _re.search(r'(\[.*\])', s, _re.S)
-            if m:
-                candidate = m.group(1)
+            match = _re.search(r"(\[.*\])", text, _re.S)
+            if match:
                 try:
-                    return _json.loads(candidate)
+                    return _json.loads(match.group(1))
                 except Exception:
                     pass
-            # fallback to Python literal parsing
             try:
-                return _ast.literal_eval(s)
+                return _ast.literal_eval(text)
             except Exception as exc:
                 _emit_log(logging.ERROR, "Failed to parse job-reason input as JSON or Python literal")
                 raise ValueError("Could not parse input as JSON or Python literal") from exc
@@ -238,28 +229,26 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
             continue
         job_val = None
         reasoning_val = None
-        for k, v in item.items():
-            kl = str(k).strip().lower()
-            if job_val is None and kl in ("job", "jobid", "id", "job_id"):
-                job_val = v
-            if reasoning_val is None and kl in ("reasoning", "reason", "explanation", "analysis", "notes"):
-                reasoning_val = v
-        # fallback: find any numeric-like value for job
+        for key, value in item.items():
+            lowered_key = str(key).strip().lower()
+            if job_val is None and lowered_key in ("job", "jobid", "id", "job_id"):
+                job_val = value
+            if reasoning_val is None and lowered_key in ("reasoning", "reason", "explanation", "analysis", "notes"):
+                reasoning_val = value
         if job_val is None:
-            for v in item.values():
-                if isinstance(v, int):
-                    job_val = v
+            for value in item.values():
+                if isinstance(value, int):
+                    job_val = value
                     break
-                if isinstance(v, str) and v.isdigit():
-                    job_val = int(v)
+                if isinstance(value, str) and value.isdigit():
+                    job_val = int(value)
                     break
-        # fallback for reasoning: first non-empty string field that's not the job
         if reasoning_val is None:
-            for k, v in item.items():
-                if str(k).strip().lower() in ("job", "jobid", "id", "job_id"):
+            for key, value in item.items():
+                if str(key).strip().lower() in ("job", "jobid", "id", "job_id"):
                     continue
-                if isinstance(v, str) and v.strip():
-                    reasoning_val = v.strip()
+                if isinstance(value, str) and value.strip():
+                    reasoning_val = value.strip()
                     break
         pairs.append([job_val, reasoning_val])
 
@@ -267,9 +256,13 @@ def parse_json_to_job_reason_pairs(json_input: Any) -> List[List[Any]]:
     return pairs
 
 
-# --- Simple SQLite persistence helpers ---
-DEFAULT_DB_FILENAME = "jobs.db"
+# --- SQLite persistence helpers ---
+DEFAULT_DB_FILENAME = "jobhunter.db"
 DATABASE_DIRNAME = "database"
+STATUS_NEW = "new"
+STATUS_RECOMMENDED = "recommended"
+STATUS_UNWANTED = "unwanted"
+VALID_PROFILE_JOB_STATUSES = {STATUS_NEW, STATUS_RECOMMENDED, STATUS_UNWANTED}
 
 
 def get_database_dir() -> Path:
@@ -278,21 +271,17 @@ def get_database_dir() -> Path:
     _emit_log(logging.DEBUG, "Ensured database directory exists at %s", db_dir)
     return db_dir
 
+
 def get_default_db_path() -> str:
     path = str(get_database_dir() / DEFAULT_DB_FILENAME)
     _emit_log(logging.DEBUG, "Resolved default DB path: %s", path)
     return path
 
-def get_named_db_path(name: str, unwanted: bool = False) -> str:
-    normalized_name = (name or "").strip()
-    if not normalized_name:
-        _emit_log(logging.WARNING, "Empty name for named DB path; falling back to default DB")
-        return get_default_db_path()
 
-    suffix = "unwanted_jobs.db" if unwanted else "jobs.db"
-    path = str(get_database_dir() / f"{normalized_name}{suffix}")
-    _emit_log(logging.INFO, "Resolved named DB path: %s (unwanted=%s)", path, unwanted)
-    return path
+def get_named_db_path(name: str, unwanted: bool = False) -> str:
+    _emit_log(logging.DEBUG, "Named DB paths are deprecated; using shared DB for name=%s unwanted=%s", name, unwanted)
+    return get_default_db_path()
+
 
 def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     db_path = db_path or get_default_db_path()
@@ -300,7 +289,9 @@ def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     _emit_log(logging.INFO, "Opening DB connection: %s", db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
 
 def compute_dedupe_key(job_data: Dict[str, Any]) -> str:
     """Produce a stable, normalized deduplication key from core job identity fields."""
@@ -311,9 +302,47 @@ def compute_dedupe_key(job_data: Dict[str, Any]) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def _validate_profile_status(status: str) -> str:
+    normalized = str(status or "").strip().lower()
+    if normalized not in VALID_PROFILE_JOB_STATUSES:
+        raise ValueError(
+            f"Invalid profile job status '{status}'. "
+            f"Expected one of: {', '.join(sorted(VALID_PROFILE_JOB_STATUSES))}"
+        )
+    return normalized
+
+
+def _normalize_profile_name(name: Optional[str]) -> str:
+    normalized = str(name or "").strip()
+    if not normalized:
+        raise ValueError("profile name is required")
+    return normalized
+
+
 def create_jobs_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
-    _emit_log(logging.DEBUG, "Ensuring jobs table and indexes exist")
+    _emit_log(logging.DEBUG, "Ensuring shared jobs schema and indexes exist")
+    cur.execute("PRAGMA foreign_keys = ON")
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            discord_user_id TEXT,
+            need TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS jobs (
@@ -328,145 +357,157 @@ def create_jobs_table(conn: sqlite3.Connection) -> None:
             salary TEXT,
             company_name TEXT,
             source TEXT,
-            LLMComment TEXT,
             raw_columns TEXT,
-            created_at TEXT,
-            dedupe_key TEXT
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            dedupe_key TEXT NOT NULL
         )
         """
     )
     cur.execute(
         """
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_unique
-        ON jobs (job_url, job_title, company_name, job_location)
+        CREATE TABLE IF NOT EXISTS profile_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL,
+            job_id INTEGER NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('new', 'recommended', 'unwanted')),
+            LLMComment TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            pushed_at TEXT,
+            UNIQUE (profile_id, job_id),
+            FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+            FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+        )
         """
     )
-
-    # Migrate existing table schema if needed
-    cur.execute("PRAGMA table_info(jobs)")
-    columns = [row[1] for row in cur.fetchall()]
-    if "LLMComment" not in columns:
-        _emit_log(logging.INFO, "Applying schema migration: adding LLMComment column")
-        cur.execute("ALTER TABLE jobs ADD COLUMN LLMComment TEXT")
-    if "dedupe_key" not in columns:
-        _emit_log(logging.INFO, "Applying schema migration: adding dedupe_key column")
-        cur.execute("ALTER TABLE jobs ADD COLUMN dedupe_key TEXT")
-        # Re-read columns after ALTER to confirm the column now exists
-        cur.execute("PRAGMA table_info(jobs)")
-        columns = [row[1] for row in cur.fetchall()]
-
-    # All operations below require dedupe_key to exist — guard defensively
-    if "dedupe_key" in columns:
-        # Before populating dedupe_key for NULL rows, drop any existing unique
-        # index on dedupe_key so we can safely populate duplicates, then
-        # deduplicate and recreate the index.
-        cur.execute("DROP INDEX IF EXISTS idx_jobs_dedupe_key")
-
-        # Populate dedupe_key for any rows that still have NULL values
-        cur.execute("SELECT id, job_title, company_name, job_location FROM jobs WHERE dedupe_key IS NULL")
-        existing_rows = cur.fetchall()
-        if existing_rows:
-            for row in existing_rows:
-                fake_job = {
-                    "job_title": row["job_title"] or "",
-                    "company_name": row["company_name"] or "",
-                    "job_location": row["job_location"] or "",
-                }
-                dk = compute_dedupe_key(fake_job)
-                cur.execute("UPDATE jobs SET dedupe_key = ? WHERE id = ?", (dk, row["id"]))
-            _emit_log(logging.INFO, "Populated dedupe_key for %d existing rows", len(existing_rows))
-
-        # Remove duplicate rows that share the same dedupe_key (cross-scraper
-        # dupes that slipped in before the unique index existed). Keep the
-        # oldest row (lowest id) per key.
-        cur.execute(
-            """
-            SELECT dedupe_key, COUNT(*) AS cnt, MIN(id) AS keep_id
-            FROM jobs
-            WHERE dedupe_key IS NOT NULL
-            GROUP BY dedupe_key
-            HAVING cnt > 1
-            """
-        )
-        dup_groups = cur.fetchall()
-        removed_total = 0
-        for group in dup_groups:
-            dk = group["dedupe_key"]
-            keep_id = group["keep_id"]
-            cur.execute(
-                "DELETE FROM jobs WHERE dedupe_key = ? AND id != ?",
-                (dk, keep_id),
-            )
-            removed_total += cur.rowcount
-        if removed_total > 0:
-            _emit_log(logging.INFO, "Removed %d duplicate row(s) via dedupe_key", removed_total)
-
-        # Create the dedupe index AFTER ensuring the column exists and duplicates
-        # are cleaned up (handles both fresh tables and migrated ones).
-        cur.execute(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_dedupe_key
-            ON jobs (dedupe_key)
-            """
-        )
-    else:
-        _emit_log(logging.ERROR, "dedupe_key column is missing and could not be added — skipping dedupe index")
-
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_dedupe_key ON jobs (dedupe_key)")
+    cur.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_url
+        ON jobs (job_url)
+        WHERE job_url IS NOT NULL AND job_url != ''
+        """
+    )
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_profiles_name ON profiles (name)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_profile_jobs_profile_status ON profile_jobs (profile_id, status, created_at, id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_profile_jobs_job ON profile_jobs (job_id)")
     conn.commit()
-    _emit_log(logging.DEBUG, "jobs table setup complete")
+    if _is_default_db_connection(conn):
+        _migrate_legacy_user_databases(conn)
+    _emit_log(logging.DEBUG, "shared jobs schema setup complete")
 
-def job_exists(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> bool:
+
+def _get_profile_id(
+    conn: sqlite3.Connection,
+    name: str,
+    *,
+    discord_user_id: Optional[str] = None,
+    need: Optional[str] = None,
+) -> int:
+    profile_name = _normalize_profile_name(name)
+    now = datetime.now(timezone.utc).isoformat()
     cur = conn.cursor()
-    _emit_log(logging.DEBUG, "Checking duplicate job: %s", _summarize_job(job_data))
-    job_url = (job_data.get("job_url") or "").strip()
-    if job_url:
-        cur.execute("SELECT 1 FROM jobs WHERE job_url = ? LIMIT 1", (job_url,))
-        if cur.fetchone() is not None:
-            _emit_log(logging.DEBUG, "Duplicate check by URL returned True")
-            return True
-
-    # Fallback: check by normalized identity hash (catches cross-scraper duplicates)
-    try:
-        dedupe_key = compute_dedupe_key(job_data)
-        cur.execute("SELECT 1 FROM jobs WHERE dedupe_key = ? LIMIT 1", (dedupe_key,))
-        if cur.fetchone() is not None:
-            _emit_log(logging.DEBUG, "Duplicate check by dedupe_key returned True")
-            return True
-    except sqlite3.OperationalError:
-        # dedupe_key column may not exist yet in older databases
-        _emit_log(logging.DEBUG, "dedupe_key column not available, falling back to title/company/location check")
-
-    title = (job_data.get("job_title") or "").strip()
-    company = (job_data.get("company_name") or "").strip()
-    location = (job_data.get("job_location") or "").strip()
     cur.execute(
-        "SELECT 1 FROM jobs WHERE job_title = ? AND company_name = ? AND job_location = ? LIMIT 1",
-        (title, company, location),
+        """
+        INSERT INTO profiles (name, discord_user_id, need, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            discord_user_id = COALESCE(excluded.discord_user_id, profiles.discord_user_id),
+            need = COALESCE(excluded.need, profiles.need),
+            updated_at = excluded.updated_at
+        """,
+        (profile_name, discord_user_id, need, now, now),
     )
-    exists = cur.fetchone() is not None
-    _emit_log(logging.DEBUG, "Duplicate check by title/company/location returned %s", exists)
-    return exists
+    cur.execute("SELECT id FROM profiles WHERE name = ?", (profile_name,))
+    row = cur.fetchone()
+    if row is None:
+        raise RuntimeError(f"Failed to resolve profile id for {profile_name}")
+    return int(row["id"])
 
-def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bool:
-    """
-    Add a job to the SQLite database if it does not already exist.
 
-    Returns True if the job was inserted, False if it was skipped because it exists.
-    """
-    _emit_log(logging.INFO, "Attempting DB insert for job: %s", _summarize_job(job_data))
+def upsert_profile(
+    name: str,
+    *,
+    discord_user_id: Optional[str] = None,
+    need: Optional[str] = None,
+    db_path: Optional[str] = None,
+) -> int:
     conn = connect_db(db_path)
     try:
         create_jobs_table(conn)
-        if job_exists(conn, job_data):
-            _emit_log(logging.INFO, "Skipped insert (duplicate job): %s", _summarize_job(job_data))
-            return False
+        profile_id = _get_profile_id(conn, name, discord_user_id=discord_user_id, need=need)
+        conn.commit()
+        return profile_id
+    finally:
+        conn.close()
 
-        cur = conn.cursor()
-        dedupe_key = compute_dedupe_key(job_data)
+
+def _find_job_id(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> Optional[int]:
+    cur = conn.cursor()
+    job_url = str(job_data.get("job_url") or "").strip()
+    if job_url:
+        cur.execute("SELECT id FROM jobs WHERE job_url = ? LIMIT 1", (job_url,))
+        row = cur.fetchone()
+        if row is not None:
+            return int(row["id"])
+
+    dedupe_key = compute_dedupe_key(job_data)
+    cur.execute("SELECT id FROM jobs WHERE dedupe_key = ? LIMIT 1", (dedupe_key,))
+    row = cur.fetchone()
+    if row is not None:
+        return int(row["id"])
+    return None
+
+
+def _upsert_job(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> int:
+    found_id = _find_job_id(conn, job_data)
+    now = datetime.now(timezone.utc).isoformat()
+    raw_columns = json.dumps(job_data.get("raw_columns", []), ensure_ascii=False)
+    dedupe_key = compute_dedupe_key(job_data)
+    cur = conn.cursor()
+
+    if found_id is not None:
+        cur.execute(
+            """
+            UPDATE jobs SET
+                job_title = COALESCE(NULLIF(?, ''), job_title),
+                job_location = COALESCE(NULLIF(?, ''), job_location),
+                job_description = COALESCE(NULLIF(?, ''), job_description),
+                job_url = COALESCE(NULLIF(?, ''), job_url),
+                date = COALESCE(NULLIF(?, ''), date),
+                type = COALESCE(NULLIF(?, ''), type),
+                isRemote = ?,
+                salary = COALESCE(NULLIF(?, ''), salary),
+                company_name = COALESCE(NULLIF(?, ''), company_name),
+                source = COALESCE(NULLIF(?, ''), source),
+                raw_columns = COALESCE(NULLIF(?, '[]'), raw_columns),
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                job_data.get("job_title"),
+                job_data.get("job_location"),
+                job_data.get("job_description"),
+                job_data.get("job_url"),
+                job_data.get("date"),
+                job_data.get("type"),
+                1 if job_data.get("isRemote") else 0,
+                job_data.get("salary"),
+                job_data.get("company_name"),
+                job_data.get("source"),
+                raw_columns,
+                now,
+                found_id,
+            ),
+        )
+        return found_id
+
+    try:
         cur.execute(
             """
             INSERT INTO jobs
-            (job_title, job_location, job_description, job_url, date, type, isRemote, salary, company_name, source, LLMComment, raw_columns, created_at, dedupe_key)
+            (job_title, job_location, job_description, job_url, date, type, isRemote, salary, company_name, source, raw_columns, created_at, updated_at, dedupe_key)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -480,29 +521,195 @@ def add_job_to_db(job_data: Dict[str, Any], db_path: Optional[str] = None) -> bo
                 job_data.get("salary"),
                 job_data.get("company_name"),
                 job_data.get("source"),
-                job_data.get("LLMComment"),
-                json.dumps(job_data.get("raw_columns", []), ensure_ascii=False),
-                datetime.now(timezone.utc).isoformat(),
+                raw_columns,
+                now,
+                now,
                 dedupe_key,
             ),
         )
-        conn.commit()
-        _emit_log(
-            logging.INFO,
-            "Inserted job id=%s: %s",
-            cur.lastrowid,
-            _summarize_job(job_data),
+        return int(cur.lastrowid)
+    except sqlite3.IntegrityError:
+        found_id = _find_job_id(conn, job_data)
+        if found_id is None:
+            raise
+        return found_id
+
+
+def _insert_or_update_profile_job(
+    conn: sqlite3.Connection,
+    *,
+    profile_id: int,
+    job_id: int,
+    status: str,
+    llm_comment: Optional[str],
+) -> bool:
+    normalized_status = _validate_profile_status(status)
+    now = datetime.now(timezone.utc).isoformat()
+    pushed_at = now if normalized_status == STATUS_RECOMMENDED else None
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT status, COALESCE(LLMComment, '') AS LLMComment
+        FROM profile_jobs
+        WHERE profile_id = ? AND job_id = ?
+        """,
+        (profile_id, job_id),
+    )
+    existing = cur.fetchone()
+    if existing is not None:
+        existing_comment = str(existing["LLMComment"] or "")
+        next_comment = llm_comment if llm_comment is not None else existing_comment
+        if existing["status"] == normalized_status and existing_comment == str(next_comment or ""):
+            return False
+        cur.execute(
+            """
+            UPDATE profile_jobs
+            SET status = ?, LLMComment = ?, updated_at = ?,
+                pushed_at = CASE WHEN ? = 'recommended' THEN COALESCE(pushed_at, ?) ELSE pushed_at END
+            WHERE profile_id = ? AND job_id = ?
+            """,
+            (normalized_status, next_comment, now, normalized_status, now, profile_id, job_id),
         )
         return True
+
+    cur.execute(
+        """
+        INSERT INTO profile_jobs
+        (profile_id, job_id, status, LLMComment, created_at, updated_at, pushed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (profile_id, job_id, normalized_status, llm_comment, now, now, pushed_at),
+    )
+    return True
+
+
+def add_job_for_profile(
+    job_data: Dict[str, Any],
+    *,
+    profile_name: str,
+    status: str = STATUS_NEW,
+    db_path: Optional[str] = None,
+) -> bool:
+    _emit_log(logging.INFO, "Adding profile job status=%s profile=%s: %s", status, profile_name, _summarize_job(job_data))
+    conn = connect_db(db_path)
+    try:
+        create_jobs_table(conn)
+        profile_id = _get_profile_id(conn, profile_name)
+        job_id = _upsert_job(conn, job_data)
+        changed = _insert_or_update_profile_job(
+            conn,
+            profile_id=profile_id,
+            job_id=job_id,
+            status=status,
+            llm_comment=job_data.get("LLMComment"),
+        )
+        conn.commit()
+        return changed
     finally:
-        _emit_log(logging.DEBUG, "Closing DB connection after add_job_to_db")
         conn.close()
 
 
+def job_exists(conn: sqlite3.Connection, job_data: Dict[str, Any]) -> bool:
+    _emit_log(logging.DEBUG, "Checking duplicate job: %s", _summarize_job(job_data))
+    create_jobs_table(conn)
+    exists = _find_job_id(conn, job_data) is not None
+    _emit_log(logging.DEBUG, "Global duplicate check returned %s", exists)
+    return exists
+
+
+def profile_job_exists(
+    conn: sqlite3.Connection,
+    profile_name: str,
+    job_data: Dict[str, Any],
+    *,
+    statuses: Optional[Sequence[str]] = None,
+) -> bool:
+    create_jobs_table(conn)
+    job_id = _find_job_id(conn, job_data)
+    if job_id is None:
+        return False
+
+    profile_id = _get_profile_id(conn, profile_name)
+    params: List[Any] = [profile_id, job_id]
+    status_clause = ""
+    if statuses:
+        normalized_statuses = [_validate_profile_status(status) for status in statuses]
+        status_clause = f" AND status IN ({','.join('?' for _ in normalized_statuses)})"
+        params.extend(normalized_statuses)
+
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT 1 FROM profile_jobs WHERE profile_id = ? AND job_id = ?{status_clause} LIMIT 1",
+        params,
+    )
+    return cur.fetchone() is not None
+
+
+def _legacy_profile_from_db_path(db_path: Optional[str]) -> tuple[Optional[str], str]:
+    if not db_path:
+        return None, STATUS_NEW
+
+    filename = Path(db_path).name
+    if filename == DEFAULT_DB_FILENAME:
+        return None, STATUS_NEW
+    if filename.endswith("unwanted_jobs.db"):
+        return filename[: -len("unwanted_jobs.db")], STATUS_UNWANTED
+    if filename.endswith("jobs.db"):
+        return filename[: -len("jobs.db")], STATUS_NEW
+    return None, STATUS_NEW
+
+
+def add_job_to_db(
+    job_data: Dict[str, Any],
+    db_path: Optional[str] = None,
+    *,
+    profile_name: Optional[str] = None,
+    status: str = STATUS_NEW,
+) -> bool:
+    """
+    Add a job to the shared SQLite database for a profile.
+
+    Returns True if a profile/job row was inserted or changed, False if it was
+    already present with the same status and comment.
+    """
+    legacy_profile_name, legacy_status = _legacy_profile_from_db_path(db_path)
+    resolved_profile_name = profile_name or legacy_profile_name
+    resolved_status = legacy_status if profile_name is None and legacy_profile_name is not None else status
+    if not resolved_profile_name:
+        raise ValueError("profile_name is required when adding a job to the shared DB")
+
+    target_db_path = get_default_db_path() if profile_name is None and legacy_profile_name is not None else db_path
+    return add_job_for_profile(
+        job_data,
+        profile_name=resolved_profile_name,
+        status=resolved_status,
+        db_path=target_db_path,
+    )
+
+
+def _safe_load_raw_columns(value: Any) -> List[Any]:
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, list) else [parsed]
+    except (TypeError, json.JSONDecodeError):
+        return [str(value)]
+
+
 def _row_to_job_dict(row: sqlite3.Row) -> Dict[str, Any]:
-    raw_columns = json.loads(row["raw_columns"]) if row["raw_columns"] else []
+    keys = set(row.keys())
+    raw_columns = _safe_load_raw_columns(row["raw_columns"]) if "raw_columns" in keys else []
+    profile_job_id = row["profile_job_id"] if "profile_job_id" in keys else None
+    job_id = row["job_id"] if "job_id" in keys else row["id"]
     return {
-        "id": row["id"],
+        "id": profile_job_id if profile_job_id is not None else job_id,
+        "job_id": job_id,
+        "profile_job_id": profile_job_id,
+        "profile_name": row["profile_name"] if "profile_name" in keys else None,
+        "status": row["status"] if "status" in keys else None,
         "job_title": row["job_title"],
         "job_location": row["job_location"],
         "job_description": row["job_description"],
@@ -513,11 +720,44 @@ def _row_to_job_dict(row: sqlite3.Row) -> Dict[str, Any]:
         "salary": row["salary"],
         "company_name": row["company_name"],
         "source": row["source"],
-        "LLMComment": row["LLMComment"],
+        "LLMComment": row["LLMComment"] if "LLMComment" in keys else DEFAULT_LLM_COMMENT,
         "raw_columns": raw_columns,
         "created_at": row["created_at"],
+        "job_created_at": row["job_created_at"] if "job_created_at" in keys else row["created_at"],
+        "updated_at": row["updated_at"] if "updated_at" in keys else None,
+        "pushed_at": row["pushed_at"] if "pushed_at" in keys else None,
         "dedupe_key": row["dedupe_key"],
     }
+
+
+def _profile_jobs_select_sql() -> str:
+    return """
+        SELECT
+            pj.id AS profile_job_id,
+            j.id AS job_id,
+            p.name AS profile_name,
+            pj.status AS status,
+            j.job_title,
+            j.job_location,
+            j.job_description,
+            j.job_url,
+            j.date,
+            j.type,
+            j.isRemote,
+            j.salary,
+            j.company_name,
+            j.source,
+            pj.LLMComment AS LLMComment,
+            j.raw_columns,
+            pj.created_at AS created_at,
+            j.created_at AS job_created_at,
+            pj.updated_at AS updated_at,
+            pj.pushed_at AS pushed_at,
+            j.dedupe_key
+        FROM profile_jobs pj
+        JOIN profiles p ON p.id = pj.profile_id
+        JOIN jobs j ON j.id = pj.job_id
+    """
 
 
 def get_jobs_after_timestamp(
@@ -528,46 +768,50 @@ def get_jobs_after_timestamp(
     db_path: Optional[str] = None,
     name: Optional[str] = None,
     unwanted: bool = False,
+    status: Optional[str] = STATUS_NEW,
     limit: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     _emit_log(
         logging.INFO,
-        "Fetching jobs after since_iso=%s, unix_timestamp=%s, last_job_id=%s, name=%s, unwanted=%s, limit=%s",
+        "Fetching jobs after since_iso=%s, unix_timestamp=%s, last_job_id=%s, name=%s, unwanted=%s, status=%s, limit=%s",
         since_iso,
         unix_timestamp,
         last_job_id,
         name,
         unwanted,
+        status,
         limit,
     )
-    if db_path is None and name:
-        db_path = get_named_db_path(name, unwanted=unwanted)
+    if unwanted:
+        status = STATUS_UNWANTED
 
-    # Prefer explicit ISO string to avoid float precision loss on round-trip
-    if since_iso:
-        since_iso_value = since_iso
-    else:
-        since_iso_value = datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).isoformat()
-
+    since_iso_value = since_iso or datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).isoformat()
     conn = connect_db(db_path)
     try:
         cur = conn.cursor()
         create_jobs_table(conn)
 
-        # Strictly advance beyond the last sent checkpoint to avoid re-announcing the
-        # boundary row. When timestamps are equal, fall back to row id ordering.
-        query = "SELECT * FROM jobs WHERE created_at > ?"
-        params: List[Any] = [since_iso_value]
+        query = _profile_jobs_select_sql()
+        filters: List[str] = []
+        params: List[Any] = []
 
-        if isinstance(last_job_id, int) and last_job_id > 0:
-            query = (
-                "SELECT * FROM jobs "
-                "WHERE created_at > ? OR (created_at = ? AND id > ?)"
-            )
-            params = [since_iso_value, since_iso_value, last_job_id]
+        if name:
+            filters.append("p.name = ?")
+            params.append(_normalize_profile_name(name))
+        if status:
+            filters.append("pj.status = ?")
+            params.append(_validate_profile_status(status))
+        if since_iso or unix_timestamp:
+            if isinstance(last_job_id, int) and last_job_id > 0:
+                filters.append("(pj.created_at > ? OR (pj.created_at = ? AND pj.id > ?))")
+                params.extend([since_iso_value, since_iso_value, last_job_id])
+            else:
+                filters.append("pj.created_at > ?")
+                params.append(since_iso_value)
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
 
-        query += " ORDER BY created_at ASC, id ASC"
-
+        query += " ORDER BY pj.created_at ASC, pj.id ASC"
         if isinstance(limit, int) and limit > 0:
             query += " LIMIT ?"
             params.append(limit)
@@ -581,24 +825,64 @@ def get_jobs_after_timestamp(
         _emit_log(logging.DEBUG, "Closing DB connection after get_jobs_after_timestamp")
         conn.close()
 
+
 def get_all_jobs(
     db_path: Optional[str] = None,
     name: Optional[str] = None,
     unwanted: bool = False,
+    status: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    _emit_log(
-        logging.INFO,
-        "Fetching all jobs (name=%s, unwanted=%s)",
-        name,
-        unwanted,
-    )
-    if db_path is None and name:
-        db_path = get_named_db_path(name, unwanted=unwanted)
+    _emit_log(logging.INFO, "Fetching all jobs (name=%s, unwanted=%s, status=%s)", name, unwanted, status)
+    if unwanted:
+        status = STATUS_UNWANTED
 
     conn = connect_db(db_path)
     try:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM jobs ORDER BY created_at DESC")
+        create_jobs_table(conn)
+        if name or status:
+            query = _profile_jobs_select_sql()
+            filters: List[str] = []
+            params: List[Any] = []
+            if name:
+                filters.append("p.name = ?")
+                params.append(_normalize_profile_name(name))
+            if status:
+                filters.append("pj.status = ?")
+                params.append(_validate_profile_status(status))
+            if filters:
+                query += " WHERE " + " AND ".join(filters)
+            query += " ORDER BY pj.created_at DESC, pj.id DESC"
+            cur.execute(query, params)
+        else:
+            cur.execute(
+                """
+                SELECT
+                    NULL AS profile_job_id,
+                    j.id AS job_id,
+                    NULL AS profile_name,
+                    NULL AS status,
+                    j.job_title,
+                    j.job_location,
+                    j.job_description,
+                    j.job_url,
+                    j.date,
+                    j.type,
+                    j.isRemote,
+                    j.salary,
+                    j.company_name,
+                    j.source,
+                    NULL AS LLMComment,
+                    j.raw_columns,
+                    j.created_at AS created_at,
+                    j.created_at AS job_created_at,
+                    j.updated_at AS updated_at,
+                    NULL AS pushed_at,
+                    j.dedupe_key
+                FROM jobs j
+                ORDER BY j.created_at DESC, j.id DESC
+                """
+            )
         rows = cur.fetchall()
         jobs = [_row_to_job_dict(row) for row in rows]
         _emit_log(logging.INFO, "Fetched %d total jobs", len(jobs))
@@ -608,3 +892,136 @@ def get_all_jobs(
         conn.close()
 
 
+def mark_profile_jobs_status(
+    *,
+    profile_name: str,
+    profile_job_ids: Sequence[int],
+    status: str,
+    db_path: Optional[str] = None,
+) -> int:
+    normalized_status = _validate_profile_status(status)
+    ids: List[int] = []
+    for item in profile_job_ids:
+        try:
+            item_id = int(item)
+        except (TypeError, ValueError):
+            continue
+        if item_id > 0:
+            ids.append(item_id)
+    if not ids:
+        return 0
+
+    conn = connect_db(db_path)
+    try:
+        create_jobs_table(conn)
+        profile_id = _get_profile_id(conn, profile_name)
+        now = datetime.now(timezone.utc).isoformat()
+        placeholders = ",".join("?" for _ in ids)
+        pushed_sql = ", pushed_at = COALESCE(pushed_at, ?)" if normalized_status == STATUS_RECOMMENDED else ""
+        params: List[Any] = [normalized_status, now]
+        if normalized_status == STATUS_RECOMMENDED:
+            params.append(now)
+        params.extend([profile_id, *ids])
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE profile_jobs
+            SET status = ?, updated_at = ?{pushed_sql}
+            WHERE profile_id = ? AND id IN ({placeholders})
+            """,
+            params,
+        )
+        conn.commit()
+        return int(cur.rowcount)
+    finally:
+        conn.close()
+
+
+def _is_default_db_connection(conn: sqlite3.Connection) -> bool:
+    cur = conn.cursor()
+    cur.execute("PRAGMA database_list")
+    row = cur.fetchone()
+    if row is None:
+        return False
+    db_path = str(row["file"] if isinstance(row, sqlite3.Row) else row[2])
+    if not db_path:
+        return False
+    try:
+        return Path(db_path).resolve() == Path(get_default_db_path()).resolve()
+    except OSError:
+        return False
+
+
+def _migrate_legacy_user_databases(conn: sqlite3.Connection) -> None:
+    cur = conn.cursor()
+    cur.execute("SELECT value FROM metadata WHERE key = 'legacy_user_dbs_migrated_at'")
+    if cur.fetchone() is not None:
+        return
+
+    db_dir = get_database_dir()
+    legacy_paths = [
+        path
+        for path in sorted(db_dir.glob("*.db"))
+        if path.name != DEFAULT_DB_FILENAME and path.stat().st_size > 0
+    ]
+    if not legacy_paths:
+        cur.execute(
+            "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+            ("legacy_user_dbs_migrated_at", datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+        return
+
+    migrated_rows = 0
+    for legacy_path in legacy_paths:
+        profile_name, status = _legacy_profile_from_db_path(str(legacy_path))
+        if not profile_name:
+            continue
+
+        legacy_conn = None
+        try:
+            legacy_conn = sqlite3.connect(legacy_path)
+            legacy_conn.row_factory = sqlite3.Row
+            legacy_cur = legacy_conn.cursor()
+            legacy_cur.execute("SELECT * FROM jobs")
+            legacy_rows = legacy_cur.fetchall()
+        except sqlite3.Error as exc:
+            _emit_log(logging.WARNING, "Skipping legacy DB %s: %s", legacy_path, exc)
+            continue
+        finally:
+            if legacy_conn is not None:
+                legacy_conn.close()
+
+        profile_id = _get_profile_id(conn, profile_name)
+        for row in legacy_rows:
+            row_keys = set(row.keys())
+            job = {
+                "job_title": row["job_title"] if "job_title" in row_keys else "",
+                "job_location": row["job_location"] if "job_location" in row_keys else "",
+                "job_description": row["job_description"] if "job_description" in row_keys else "",
+                "job_url": row["job_url"] if "job_url" in row_keys else "",
+                "date": row["date"] if "date" in row_keys else "",
+                "type": row["type"] if "type" in row_keys else "",
+                "isRemote": bool(row["isRemote"]) if "isRemote" in row_keys else False,
+                "salary": row["salary"] if "salary" in row_keys else "",
+                "company_name": row["company_name"] if "company_name" in row_keys else "",
+                "source": row["source"] if "source" in row_keys else "",
+                "LLMComment": row["LLMComment"] if "LLMComment" in row_keys else DEFAULT_LLM_COMMENT,
+                "raw_columns": _safe_load_raw_columns(row["raw_columns"]) if "raw_columns" in row_keys else [],
+            }
+            job_id = _upsert_job(conn, job)
+            _insert_or_update_profile_job(
+                conn,
+                profile_id=profile_id,
+                job_id=job_id,
+                status=status if status == STATUS_UNWANTED else STATUS_RECOMMENDED,
+                llm_comment=job.get("LLMComment"),
+            )
+            migrated_rows += 1
+
+    cur.execute(
+        "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+        ("legacy_user_dbs_migrated_at", datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+    _emit_log(logging.INFO, "Migrated %d legacy profile job row(s) into shared DB", migrated_rows)

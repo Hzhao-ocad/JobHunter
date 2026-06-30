@@ -18,7 +18,12 @@ from typing import Any, Dict, List, Optional
 
 import discord
 
-from JobStruct import get_jobs_after_timestamp
+from JobStruct import (
+    STATUS_NEW,
+    STATUS_RECOMMENDED,
+    get_jobs_after_timestamp,
+    mark_profile_jobs_status,
+)
 from discord_formatter import build_job_embed, build_mention_text, job_dedupe_key
 
 
@@ -524,14 +529,10 @@ class JobAnnouncementBot(discord.Client):
                 continue
 
             target_state = get_target_state(self.state, target.name)
-            last_sent_iso = str(target_state.get("last_sent_iso", "") or "")
-            last_sent_job_id = int(target_state.get("last_sent_job_id", 0))
-
             jobs = get_jobs_after_timestamp(
-                since_iso=last_sent_iso or None,
-                last_job_id=last_sent_job_id,
                 name=target.user_db_name,
                 unwanted=False,
+                status=STATUS_NEW,
                 limit=target.max_jobs_per_poll,
             )
 
@@ -591,9 +592,25 @@ class JobAnnouncementBot(discord.Client):
 
             recent_keys.add(dedupe_key)
 
+        if self.dry_run:
+            return
+
         # Update state once after ALL jobs are sent (avoids partial state on error)
         if jobs_to_send:
             self._update_target_state_after_send(target_state, recent_keys, jobs_to_send)
+            marked_count = mark_profile_jobs_status(
+                profile_name=target.user_db_name,
+                profile_job_ids=[
+                    int(job.get("profile_job_id") or job.get("id") or 0)
+                    for job, _dedupe_key in jobs_to_send
+                ],
+                status=STATUS_RECOMMENDED,
+            )
+            LOGGER.info(
+                "Marked %s job(s) as recommended for target '%s'",
+                marked_count,
+                target.name,
+            )
             save_state(self.config.state_file, self.state)
 
     def _update_target_state_after_send(
