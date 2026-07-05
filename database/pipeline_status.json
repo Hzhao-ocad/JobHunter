@@ -1,0 +1,563 @@
+{
+  "state": "waiting",
+  "phase": "scheduled_wait",
+  "config_path": "C:\\Users\\840\\Desktop\\JobHunter\\JobHunter\\JobHunter\\discord_config.json",
+  "run_times": [
+    "03:00",
+    "08:00",
+    "10:42",
+    "11:00",
+    "14:00",
+    "14:27",
+    "17:00",
+    "22:00"
+  ],
+  "status_port": 8502,
+  "last_error": "",
+  "updated_at_utc": "2026-07-05T03:01:20.263262+00:00",
+  "user_count": 4,
+  "user_names": [
+    "Joshua",
+    "Harry",
+    "Thea",
+    "Golnoushh"
+  ],
+  "last_run_started_at": "2026-07-04T22:00:00.010158",
+  "events": [
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T16:01:05.443739+00:00",
+      "source": "GetInteractiveImmersiveJobs",
+      "job_count": 50
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T16:01:07.418457+00:00",
+      "user_name": "Joshua",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T16:01:07.429428+00:00",
+      "user_name": "Joshua"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T16:01:09.865911+00:00",
+      "user_name": "Harry",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T16:01:09.875883+00:00",
+      "user_name": "Harry"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T16:01:11.810708+00:00",
+      "user_name": "Thea",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T16:01:11.821679+00:00",
+      "user_name": "Thea"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T16:01:14.335953+00:00",
+      "user_name": "Golnoushh",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T16:01:14.346924+00:00",
+      "user_name": "Golnoushh"
+    },
+    {
+      "event": "diagnostic_run_finished",
+      "timestamp_utc": "2026-07-04T16:01:14.363878+00:00",
+      "run_id": "20260704_110000_025853_abaf430e"
+    },
+    {
+      "event": "pipeline_finished",
+      "timestamp_utc": "2026-07-04T16:01:14.381830+00:00",
+      "user_count": 4
+    },
+    {
+      "event": "pipeline_started",
+      "timestamp_utc": "2026-07-04T19:00:00.048546+00:00",
+      "user_count": 4,
+      "user_names": [
+        "Joshua",
+        "Harry",
+        "Thea",
+        "Golnoushh"
+      ]
+    },
+    {
+      "event": "diagnostic_run_started",
+      "timestamp_utc": "2026-07-04T19:00:00.088438+00:00",
+      "run_id": "20260704_140000_066498_ba81b4d5"
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:00:01.580448+00:00",
+      "source": "getUoftjobs",
+      "job_count": 50
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:00:43.548573+00:00",
+      "source": "GetGeneralJobs",
+      "job_count": 66
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:00:52.184472+00:00",
+      "source": "GetAkimboJobs",
+      "job_count": 54
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:00:53.912849+00:00",
+      "source": "OCADU_Scrape",
+      "job_count": 28
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:01:05.170735+00:00",
+      "source": "GetInteractiveImmersiveJobs",
+      "job_count": 50
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:01:07.185346+00:00",
+      "user_name": "Joshua",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:01:07.197314+00:00",
+      "user_name": "Joshua"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:01:09.925018+00:00",
+      "user_name": "Harry",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:01:09.935989+00:00",
+      "user_name": "Harry"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:01:11.847874+00:00",
+      "user_name": "Thea",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:01:11.858845+00:00",
+      "user_name": "Thea"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:01:13.866475+00:00",
+      "user_name": "Golnoushh",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:01:13.878442+00:00",
+      "user_name": "Golnoushh"
+    },
+    {
+      "event": "diagnostic_run_finished",
+      "timestamp_utc": "2026-07-04T19:01:13.896396+00:00",
+      "run_id": "20260704_140000_066498_ba81b4d5"
+    },
+    {
+      "event": "pipeline_finished",
+      "timestamp_utc": "2026-07-04T19:01:13.917339+00:00",
+      "user_count": 4
+    },
+    {
+      "event": "pipeline_started",
+      "timestamp_utc": "2026-07-04T19:27:00.016873+00:00",
+      "user_count": 4,
+      "user_names": [
+        "Joshua",
+        "Harry",
+        "Thea",
+        "Golnoushh"
+      ]
+    },
+    {
+      "event": "diagnostic_run_started",
+      "timestamp_utc": "2026-07-04T19:27:00.046793+00:00",
+      "run_id": "20260704_142700_023855_3436b5a3"
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:27:01.537804+00:00",
+      "source": "getUoftjobs",
+      "job_count": 50
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:27:50.321284+00:00",
+      "source": "GetGeneralJobs",
+      "job_count": 66
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:28:00.388419+00:00",
+      "source": "GetAkimboJobs",
+      "job_count": 54
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:28:02.474838+00:00",
+      "source": "OCADU_Scrape",
+      "job_count": 28
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T19:28:13.600081+00:00",
+      "source": "GetInteractiveImmersiveJobs",
+      "job_count": 50
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:28:17.976372+00:00",
+      "user_name": "Joshua",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:28:17.988340+00:00",
+      "user_name": "Joshua"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:28:20.317111+00:00",
+      "user_name": "Harry",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:28:20.327084+00:00",
+      "user_name": "Harry"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:28:22.486309+00:00",
+      "user_name": "Thea",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:28:22.500271+00:00",
+      "user_name": "Thea"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T19:28:24.592675+00:00",
+      "user_name": "Golnoushh",
+      "total_jobs": 246,
+      "jobs_to_filter": 0,
+      "already_seen": 246
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T19:28:24.605640+00:00",
+      "user_name": "Golnoushh"
+    },
+    {
+      "event": "diagnostic_run_finished",
+      "timestamp_utc": "2026-07-04T19:28:24.628578+00:00",
+      "run_id": "20260704_142700_023855_3436b5a3"
+    },
+    {
+      "event": "pipeline_finished",
+      "timestamp_utc": "2026-07-04T19:28:24.655506+00:00",
+      "user_count": 4
+    },
+    {
+      "event": "pipeline_started",
+      "timestamp_utc": "2026-07-04T22:00:00.032201+00:00",
+      "user_count": 4,
+      "user_names": [
+        "Joshua",
+        "Harry",
+        "Thea",
+        "Golnoushh"
+      ]
+    },
+    {
+      "event": "diagnostic_run_started",
+      "timestamp_utc": "2026-07-04T22:00:00.109994+00:00",
+      "run_id": "20260704_170000_041177_4eac7183"
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T22:00:00.990637+00:00",
+      "source": "getUoftjobs",
+      "job_count": 50
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T22:00:47.122547+00:00",
+      "source": "GetGeneralJobs",
+      "job_count": 65
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T22:00:51.007156+00:00",
+      "source": "GetAkimboJobs",
+      "job_count": 54
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T22:00:53.212257+00:00",
+      "source": "OCADU_Scrape",
+      "job_count": 28
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-04T22:01:03.904657+00:00",
+      "source": "GetInteractiveImmersiveJobs",
+      "job_count": 50
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T22:01:06.020995+00:00",
+      "user_name": "Joshua",
+      "total_jobs": 244,
+      "jobs_to_filter": 0,
+      "already_seen": 244
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T22:01:06.031965+00:00",
+      "user_name": "Joshua"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T22:01:08.045579+00:00",
+      "user_name": "Harry",
+      "total_jobs": 244,
+      "jobs_to_filter": 0,
+      "already_seen": 244
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T22:01:08.055552+00:00",
+      "user_name": "Harry"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T22:01:10.629667+00:00",
+      "user_name": "Thea",
+      "total_jobs": 244,
+      "jobs_to_filter": 0,
+      "already_seen": 244
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T22:01:10.639640+00:00",
+      "user_name": "Thea"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-04T22:01:12.681180+00:00",
+      "user_name": "Golnoushh",
+      "total_jobs": 244,
+      "jobs_to_filter": 0,
+      "already_seen": 244
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-04T22:01:12.694144+00:00",
+      "user_name": "Golnoushh"
+    },
+    {
+      "event": "diagnostic_run_finished",
+      "timestamp_utc": "2026-07-04T22:01:12.715088+00:00",
+      "run_id": "20260704_170000_041177_4eac7183"
+    },
+    {
+      "event": "pipeline_finished",
+      "timestamp_utc": "2026-07-04T22:01:12.739024+00:00",
+      "user_count": 4
+    },
+    {
+      "event": "pipeline_started",
+      "timestamp_utc": "2026-07-05T03:00:00.026115+00:00",
+      "user_count": 4,
+      "user_names": [
+        "Joshua",
+        "Harry",
+        "Thea",
+        "Golnoushh"
+      ]
+    },
+    {
+      "event": "diagnostic_run_started",
+      "timestamp_utc": "2026-07-05T03:00:00.063015+00:00",
+      "run_id": "20260704_220000_038082_e3352a52"
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-05T03:00:00.599580+00:00",
+      "source": "getUoftjobs",
+      "job_count": 50
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-05T03:00:43.447740+00:00",
+      "source": "GetGeneralJobs",
+      "job_count": 65
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-05T03:00:52.224264+00:00",
+      "source": "GetAkimboJobs",
+      "job_count": 54
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-05T03:00:54.029435+00:00",
+      "source": "OCADU_Scrape",
+      "job_count": 28
+    },
+    {
+      "event": "scraper_finished",
+      "timestamp_utc": "2026-07-05T03:01:04.889386+00:00",
+      "source": "GetInteractiveImmersiveJobs",
+      "job_count": 50
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-05T03:01:09.838148+00:00",
+      "user_name": "Joshua",
+      "total_jobs": 245,
+      "jobs_to_filter": 1,
+      "already_seen": 244
+    },
+    {
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-05T03:01:12.033276+00:00",
+      "user_name": "Joshua",
+      "batch_index": 0,
+      "batch_job_count": 1,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-05T03:01:12.053223+00:00",
+      "user_name": "Joshua",
+      "potential_count": 0,
+      "unwanted_count": 1,
+      "total_input_jobs": 1
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-05T03:01:15.975730+00:00",
+      "user_name": "Harry",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-05T03:01:15.988695+00:00",
+      "user_name": "Harry"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-05T03:01:17.967403+00:00",
+      "user_name": "Thea",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-05T03:01:17.979370+00:00",
+      "user_name": "Thea"
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-05T03:01:20.197437+00:00",
+      "user_name": "Golnoushh",
+      "total_jobs": 245,
+      "jobs_to_filter": 0,
+      "already_seen": 245
+    },
+    {
+      "event": "user_skipped_no_new_jobs",
+      "timestamp_utc": "2026-07-05T03:01:20.209406+00:00",
+      "user_name": "Golnoushh"
+    },
+    {
+      "event": "diagnostic_run_finished",
+      "timestamp_utc": "2026-07-05T03:01:20.232344+00:00",
+      "run_id": "20260704_220000_038082_e3352a52"
+    },
+    {
+      "event": "pipeline_finished",
+      "timestamp_utc": "2026-07-05T03:01:20.254286+00:00",
+      "user_count": 4
+    }
+  ],
+  "current_run_id": "20260704_220000_038082_e3352a52",
+  "scrape_sources_done": [
+    "getUoftjobs",
+    "GetGeneralJobs",
+    "GetAkimboJobs",
+    "OCADU_Scrape",
+    "GetInteractiveImmersiveJobs"
+  ],
+  "scrape_sources_total": 5,
+  "llm_batches_done": 1,
+  "llm_batches_total": 1,
+  "db_writes_done": 1,
+  "db_writes_total": 1,
+  "current_source": "",
+  "total_jobs_after_dedupe": 245,
+  "total_jobs_before_dedupe": 247,
+  "current_user": "",
+  "current_user_index": 4,
+  "current_batch": 0,
+  "jobs_to_filter": 1,
+  "current_batch_job_count": 1,
+  "current_batch_start_index": 0,
+  "last_run_finished_at": "2026-07-04T22:01:20.236334",
+  "next_run_at": "2026-07-05T03:00:00"
+}

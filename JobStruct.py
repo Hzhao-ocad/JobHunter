@@ -26,6 +26,9 @@ _LOGGER = logging.getLogger("JobHunter.JobStruct")
 
 def _emit_log(level: int, message: str, *args: Any) -> None:
     """Emit a prefixed log line and fallback to print when logging is unconfigured."""
+    if level < _LOGGER.getEffectiveLevel():
+        return
+
     rendered = message % args if args else message
     prefixed = f"{LOG_PREFIX} {rendered}"
 
@@ -286,7 +289,7 @@ def get_named_db_path(name: str, unwanted: bool = False) -> str:
 def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
     db_path = db_path or get_default_db_path()
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    _emit_log(logging.INFO, "Opening DB connection: %s", db_path)
+    _emit_log(logging.DEBUG, "Opening DB connection: %s", db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")

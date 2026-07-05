@@ -3,20 +3,23 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import logging
+import subprocess
+import sys
+import threading
 import time
 from datetime import datetime, time as day_time, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import LLMLayer
 from JobHunterLogger import get_logger, start_diagnostic_run, end_diagnostic_run
+from PipelineStatus import append_event, update_status
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "discord_config.json"
 DEFAULT_RUN_TIMES = "03:00,08:00,10:42,11:00,14:00,14:27,17:00,22:00"
+DEFAULT_STATUS_PORT = 8502
 
 
 def _normalize_name_need(raw_name_need: object) -> Dict[str, Dict[str, str]]:
@@ -68,45 +71,6 @@ def load_user_needs(config_path: Path) -> Tuple[List[str], List[str]]:
 	user_names = list(needs_by_name.keys())
 	user_needs = [needs_by_name[name] for name in user_names]
 	return user_names, user_needs
-
-
-def parse_args() -> argparse.Namespace:
-	parser = argparse.ArgumentParser(description="Run JobHunter with config-driven user needs.")
-	parser.add_argument(
-		"--config",
-		default=str(DEFAULT_CONFIG_PATH),
-		help="Path to config JSON containing nameNeed. Default: discord_config.json",
-	)
-	parser.add_argument(
-		"--times",
-		default=DEFAULT_RUN_TIMES,
-		help=(
-			"Comma-separated 24-hour run times (HH:MM). "
-			f"Default: {DEFAULT_RUN_TIMES}"
-		),
-	)
-	parser.add_argument(
-		"--once",
-		action="store_true",
-		help="Run one time immediately and exit.",
-	)
-	parser.add_argument(
-		"--run-now",
-		action="store_true",
-		help="When running in schedule mode, run immediately before waiting for the next time.",
-	)
-	parser.add_argument(
-		"--log-level",
-		default="INFO",
-		choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-		help="Logging verbosity. Default: INFO",
-	)
-	parser.add_argument(
-		"--log-file",
-		default="",
-		help="Optional log file path. If set, logs are written to both console and file.",
-	)
-	return parser.parse_args()
 
 
 def _configure_logging(level_name: str, log_file: str = "") -> None:
@@ -167,8 +131,20 @@ def _get_next_run(now: datetime, run_times: List[day_time]) -> datetime:
 
 
 def run_pipeline_once(config_path: Path) -> None:
+	import LLMLayer
+
 	_diag_logger = get_logger()
 	user_names, user_needs = load_user_needs(config_path)
+	update_status(
+		state="running",
+		phase="starting",
+		config_path=str(config_path),
+		user_count=len(user_names),
+		user_names=user_names,
+		last_run_started_at=datetime.now().isoformat(),
+		last_error="",
+	)
+	append_event("pipeline_started", user_count=len(user_names), user_names=user_names)
 	_diag_logger.log_job_search_results(
 		"PIPELINE_START",
 		[],
@@ -179,13 +155,38 @@ def run_pipeline_once(config_path: Path) -> None:
 		},
 	)
 	job_finder = LLMLayer.LLMClient()
-	LLMLayer.FindMeSomeJobs(user_needs, user_names, job_finder)
+	try:
+		LLMLayer.FindMeSomeJobs(user_needs, user_names, job_finder)
+	except Exception as exc:
+		update_status(
+			state="error",
+			phase="failed",
+			last_error=str(exc),
+			last_run_finished_at=datetime.now().isoformat(),
+		)
+		append_event("pipeline_failed", error=str(exc))
+		raise
+	else:
+		update_status(
+			state="idle",
+			phase="finished",
+			last_run_finished_at=datetime.now().isoformat(),
+			last_error="",
+		)
+		append_event("pipeline_finished", user_count=len(user_names))
 
 
 def run_scheduler(config_path: Path, run_times: List[day_time], run_now: bool = False) -> None:
 	logger = logging.getLogger(__name__)
 	times_display = ", ".join(t.strftime("%H:%M") for t in run_times)
 	logger.info("Scheduler started. Local run times: %s", times_display)
+	update_status(
+		state="scheduler_started",
+		phase="waiting",
+		config_path=str(config_path),
+		run_times=[t.strftime("%H:%M") for t in run_times],
+		last_error="",
+	)
 
 	if run_now:
 		logger.info("Running immediately (--run-now).")
@@ -197,6 +198,12 @@ def run_scheduler(config_path: Path, run_times: List[day_time], run_now: bool = 
 	while True:
 		now = datetime.now()
 		next_run = _get_next_run(now, run_times)
+		update_status(
+			state="waiting",
+			phase="scheduled_wait",
+			next_run_at=next_run.isoformat(),
+			run_times=[t.strftime("%H:%M") for t in run_times],
+		)
 		logger.info(
 			"Now: %s | Next run at: %s",
 			now.strftime("%Y-%m-%d %H:%M:%S"),
@@ -218,18 +225,47 @@ def run_scheduler(config_path: Path, run_times: List[day_time], run_now: bool = 
 			logger.exception("Scheduled job failed: %s", exc)
 
 
+def launch_status_viewer(port: int = DEFAULT_STATUS_PORT) -> None:
+	viewer_path = Path(__file__).resolve().parent / "StatusViewer_UI.py"
+	subprocess.run(
+		[
+			sys.executable,
+			"-m",
+			"streamlit",
+			"run",
+			str(viewer_path),
+			"--server.port",
+			str(port),
+		],
+		check=False,
+	)
+
+
 def main() -> None:
-	args = parse_args()
-	_configure_logging(args.log_level, args.log_file)
-	config_path = Path(args.config)
+	_configure_logging("INFO")
+	config_path = DEFAULT_CONFIG_PATH
 	_validate_config_path(config_path)
+	run_times = _parse_run_times(DEFAULT_RUN_TIMES)
 
-	if args.once:
-		run_pipeline_once(config_path)
-		return
+	update_status(
+		state="starting",
+		phase="launching_viewer_and_scheduler",
+		config_path=str(config_path),
+		run_times=[t.strftime("%H:%M") for t in run_times],
+		status_port=DEFAULT_STATUS_PORT,
+		last_error="",
+	)
 
-	run_times = _parse_run_times(args.times)
-	run_scheduler(config_path, run_times=run_times, run_now=args.run_now)
+	scheduler_thread = threading.Thread(
+		target=run_scheduler,
+		args=(config_path, run_times),
+		kwargs={"run_now": True},
+		name="JobHunterScheduler",
+		daemon=True,
+	)
+	scheduler_thread.start()
+
+	launch_status_viewer(DEFAULT_STATUS_PORT)
 
 
 if __name__ == "__main__":
