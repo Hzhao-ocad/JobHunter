@@ -1,0 +1,10 @@
+{
+  "scrapers": [
+    {"id": "uoft_cupe", "enabled": true},
+    {"id": "general_jobspy", "enabled": true},
+    {"id": "akimbo", "enabled": true},
+    {"id": "ocadu_taleo", "enabled": true},
+    {"id": "interactive_immersive", "enabled": true}
+  ]
+}
+

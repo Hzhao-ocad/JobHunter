@@ -1,8 +1,5 @@
+#!/usr/bin/env python3
+"""Compatibility entrypoint for printing stored jobs."""
 
-from JobStruct import get_all_jobs
+from scripts.print_jobs import *  # noqa: F401,F403
 
-
-alljobs = get_all_jobs(name="Thea")
-print(f"Total jobs in database: {len(alljobs)}")
-for job in alljobs:
-    print(f"{job.get('status', 'unknown')}: {job['job_title']}")

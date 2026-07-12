@@ -1,0 +1,9 @@
+[project]
+name = "jobhunter"
+version = "0.1.0"
+description = "Art job hunting pipeline with LLM filtering and Discord notifications."
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["jobhunter*"]
+
