@@ -13,6 +13,7 @@ from jobhunter.jobs.struct import (
     job_exists,
     mark_profile_jobs_status,
     profile_job_exists,
+    search_jobs,
     upsert_profile,
 )
 
@@ -27,6 +28,6 @@ __all__ = [
     "job_exists",
     "mark_profile_jobs_status",
     "profile_job_exists",
+    "search_jobs",
     "upsert_profile",
 ]
-

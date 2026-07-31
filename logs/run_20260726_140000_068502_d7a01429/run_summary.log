@@ -1,0 +1,17 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260726_140000_068502_d7a01429
+Started : 2026-07-26T19:00:00.068502+00:00
+============================================================
+[2026-07-26T19:00:00.703801+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-07-26T19:01:18.907015+00:00] SCRAPE | source=GetGeneralJobs | jobs=59
+[2026-07-26T19:01:25.120395+00:00] SCRAPE | source=GetAkimboJobs | jobs=53
+[2026-07-26T19:01:27.745373+00:00] SCRAPE | source=OCADU_Scrape | jobs=34
+[2026-07-26T19:01:39.122671+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-07-26T19:01:39.133641+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=243
+[2026-07-26T19:01:43.734338+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-26T19:01:43.800160+00:00] RESULT | user=Joshua | potential=0 | unwanted=1 | total_input=1
+
+============================================================
+Run ended: 2026-07-26T19:01:50.600968+00:00
+============================================================

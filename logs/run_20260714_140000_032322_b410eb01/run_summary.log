@@ -1,0 +1,27 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260714_140000_032322_b410eb01
+Started : 2026-07-14T19:00:00.033319+00:00
+============================================================
+[2026-07-14T19:00:00.531986+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-07-14T19:01:09.112175+00:00] SCRAPE | source=GetGeneralJobs | jobs=71
+[2026-07-14T19:01:18.355450+00:00] SCRAPE | source=GetAkimboJobs | jobs=55
+[2026-07-14T19:01:19.935225+00:00] SCRAPE | source=OCADU_Scrape | jobs=27
+[2026-07-14T19:01:31.481877+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-07-14T19:01:31.493844+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=249
+[2026-07-14T19:01:50.685508+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:01:59.337365+00:00] LLM    | user=Joshua | batch=1 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:01:59.361301+00:00] RESULT | user=Joshua | potential=0 | unwanted=12 | total_input=12
+[2026-07-14T19:02:14.608055+00:00] LLM    | user=Harry | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:02:18.299182+00:00] LLM    | user=Harry | batch=1 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:02:18.318131+00:00] RESULT | user=Harry | potential=0 | unwanted=11 | total_input=11
+[2026-07-14T19:02:40.271407+00:00] LLM    | user=Thea | batch=0 | msgs=2 | resp_len=369 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:02:44.930943+00:00] LLM    | user=Thea | batch=1 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:02:44.950891+00:00] RESULT | user=Thea | potential=1 | unwanted=10 | total_input=11
+[2026-07-14T19:03:09.599062+00:00] LLM    | user=Golnoushh | batch=0 | msgs=2 | resp_len=348 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:03:13.608337+00:00] LLM    | user=Golnoushh | batch=1 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-pro | provider=deepseek
+[2026-07-14T19:03:13.629281+00:00] RESULT | user=Golnoushh | potential=1 | unwanted=10 | total_input=11
+
+============================================================
+Run ended: 2026-07-14T19:03:13.907537+00:00
+============================================================

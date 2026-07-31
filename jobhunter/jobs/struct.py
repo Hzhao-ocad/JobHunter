@@ -14,7 +14,7 @@ import json
 import logging
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -268,6 +268,14 @@ STATUS_NEW = "new"
 STATUS_RECOMMENDED = "recommended"
 STATUS_UNWANTED = "unwanted"
 VALID_PROFILE_JOB_STATUSES = {STATUS_NEW, STATUS_RECOMMENDED, STATUS_UNWANTED}
+SEARCH_DATABASE_GENERAL = "general"
+SEARCH_DATABASE_WANTED = "wanted"
+SEARCH_DATABASE_NOT_WANTED = "not_wanted"
+VALID_SEARCH_DATABASES = {
+    SEARCH_DATABASE_GENERAL,
+    SEARCH_DATABASE_WANTED,
+    SEARCH_DATABASE_NOT_WANTED,
+}
 
 
 def get_database_dir() -> Path:
@@ -315,6 +323,28 @@ def _validate_profile_status(status: str) -> str:
             f"Expected one of: {', '.join(sorted(VALID_PROFILE_JOB_STATUSES))}"
         )
     return normalized
+
+
+def _validate_search_database(database: str) -> str:
+    normalized = str(database or SEARCH_DATABASE_GENERAL).strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "all": SEARCH_DATABASE_GENERAL,
+        "overall": SEARCH_DATABASE_GENERAL,
+        "global": SEARCH_DATABASE_GENERAL,
+        "unwanted": SEARCH_DATABASE_NOT_WANTED,
+        "notwanted": SEARCH_DATABASE_NOT_WANTED,
+    }
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in VALID_SEARCH_DATABASES:
+        raise ValueError(
+            f"Invalid search database '{database}'. "
+            f"Expected one of: {', '.join(sorted(VALID_SEARCH_DATABASES))}"
+        )
+    return normalized
+
+
+def _escape_like_pattern(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _normalize_profile_name(name: Optional[str]) -> str:
@@ -894,6 +924,121 @@ def get_all_jobs(
         return jobs
     finally:
         _emit_log(logging.DEBUG, "Closing DB connection after get_all_jobs")
+        conn.close()
+
+
+def search_jobs(
+    *,
+    query: str,
+    days: Optional[int] = None,
+    database: str = SEARCH_DATABASE_GENERAL,
+    profile_name: Optional[str] = None,
+    limit: Optional[int] = 10,
+    db_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Search scraped jobs by job title or description.
+
+    database="general" searches the canonical all-scraped jobs table.
+    database="wanted" searches profile jobs with new/recommended statuses.
+    database="not_wanted" searches profile jobs marked unwanted.
+    """
+    search_text = str(query or "").strip()
+    if not search_text:
+        raise ValueError("query is required")
+
+    search_database = _validate_search_database(database)
+    normalized_profile_name: Optional[str] = None
+    if search_database != SEARCH_DATABASE_GENERAL:
+        normalized_profile_name = _normalize_profile_name(profile_name)
+
+    max_results: Optional[int] = None
+    if isinstance(limit, int):
+        max_results = max(1, min(limit, 50))
+
+    cutoff_iso: Optional[str] = None
+    if days is not None:
+        days_int = max(1, int(days))
+        cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=days_int)).isoformat()
+
+    like_pattern = f"%{_escape_like_pattern(search_text.lower())}%"
+    conn = connect_db(db_path)
+    try:
+        cur = conn.cursor()
+        create_jobs_table(conn)
+
+        filters: List[str] = [
+            """
+            (
+                LOWER(COALESCE(j.job_title, '')) LIKE ? ESCAPE '\\'
+                OR LOWER(COALESCE(j.job_description, '')) LIKE ? ESCAPE '\\'
+            )
+            """
+        ]
+        params: List[Any] = [like_pattern, like_pattern]
+
+        if cutoff_iso:
+            filters.append("j.created_at >= ?")
+            params.append(cutoff_iso)
+
+        if search_database == SEARCH_DATABASE_GENERAL:
+            sql = """
+                SELECT
+                    NULL AS profile_job_id,
+                    j.id AS job_id,
+                    NULL AS profile_name,
+                    NULL AS status,
+                    j.job_title,
+                    j.job_location,
+                    j.job_description,
+                    j.job_url,
+                    j.date,
+                    j.type,
+                    j.isRemote,
+                    j.salary,
+                    j.company_name,
+                    j.source,
+                    NULL AS LLMComment,
+                    j.raw_columns,
+                    j.created_at AS created_at,
+                    j.created_at AS job_created_at,
+                    j.updated_at AS updated_at,
+                    NULL AS pushed_at,
+                    j.dedupe_key
+                FROM jobs j
+            """
+        else:
+            sql = _profile_jobs_select_sql()
+            filters.append("p.name = ?")
+            params.append(normalized_profile_name)
+            if search_database == SEARCH_DATABASE_WANTED:
+                filters.append("pj.status IN (?, ?)")
+                params.extend([STATUS_NEW, STATUS_RECOMMENDED])
+            else:
+                filters.append("pj.status = ?")
+                params.append(STATUS_UNWANTED)
+
+        sql += " WHERE " + " AND ".join(filters)
+        sql += " ORDER BY j.created_at DESC, j.id DESC"
+        if max_results is not None:
+            sql += " LIMIT ?"
+            params.append(max_results)
+
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+        jobs = [_row_to_job_dict(row) for row in rows]
+        _emit_log(
+            logging.INFO,
+            "Search returned %d job(s) for query=%s database=%s profile=%s days=%s",
+            len(jobs),
+            search_text,
+            search_database,
+            normalized_profile_name,
+            days,
+        )
+        return jobs
+    finally:
+        _emit_log(logging.DEBUG, "Closing DB connection after search_jobs")
         conn.close()
 
 

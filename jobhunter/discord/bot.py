@@ -24,12 +24,50 @@ from jobhunter.storage.repositories import (
     STATUS_RECOMMENDED,
     get_jobs_after_timestamp,
     mark_profile_jobs_status,
+    search_jobs,
 )
 from jobhunter.discord.formatter import build_job_embed, build_mention_text, job_dedupe_key
 
 
 LOGGER = logging.getLogger("discord_job_bot")
 STATE_CACHE_SIZE = 200
+SEARCH_DATABASE_GENERAL = "general"
+SEARCH_DATABASE_WANTED = "wanted"
+SEARCH_DATABASE_NOT_WANTED = "not_wanted"
+
+
+def _truncate_text(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    if limit <= 3:
+        return text[:limit]
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _search_match_snippet(job: Dict[str, Any], query: str, limit: int = 260) -> tuple[str, str]:
+    search_text = str(query or "").strip().lower()
+    fields = [
+        ("Title", str(job.get("job_title") or "")),
+        ("Description", str(job.get("job_description") or "")),
+    ]
+
+    for label, value in fields:
+        if not value:
+            continue
+        match_index = value.lower().find(search_text)
+        if match_index < 0:
+            continue
+
+        start = max(0, match_index - 80)
+        end = min(len(value), match_index + len(search_text) + 160)
+        snippet = " ".join(value[start:end].split())
+        if start > 0:
+            snippet = "..." + snippet
+        if end < len(value):
+            snippet = snippet + "..."
+        return label, _truncate_text(snippet, limit)
+
+    return "Match", "Matched title or description."
 
 
 @dataclass
@@ -353,6 +391,38 @@ class JobAnnouncementBot(discord.Client):
         async def my_need_command(interaction: discord.Interaction) -> None:
             await self._handle_myneed_command(interaction)
 
+        @self.tree.command(name="search", description="Search scraped jobs by title or description keyword.")
+        @discord.app_commands.describe(
+            query="Job title text or description keyword to search for",
+            days="Only include jobs scraped within this many days",
+            database="Where to search. General means all scraped jobs.",
+            profile="Profile name for wanted/not-wanted searches. Defaults to your mapped profile.",
+            limit="Maximum number of results to show",
+        )
+        @discord.app_commands.choices(
+            database=[
+                discord.app_commands.Choice(name="General (all scraped jobs)", value=SEARCH_DATABASE_GENERAL),
+                discord.app_commands.Choice(name="Wanted", value=SEARCH_DATABASE_WANTED),
+                discord.app_commands.Choice(name="Not wanted", value=SEARCH_DATABASE_NOT_WANTED),
+            ]
+        )
+        async def search_command(
+            interaction: discord.Interaction,
+            query: discord.app_commands.Range[str, 1, 100],
+            days: Optional[discord.app_commands.Range[int, 1, 3650]] = None,
+            database: str = SEARCH_DATABASE_GENERAL,
+            profile: Optional[discord.app_commands.Range[str, 1, 100]] = None,
+            limit: discord.app_commands.Range[int, 1, 10] = 5,
+        ) -> None:
+            await self._handle_search_command(
+                interaction,
+                query=str(query),
+                days=int(days) if days is not None else None,
+                database=database,
+                profile=str(profile).strip() if profile else None,
+                limit=int(limit),
+            )
+
         self._commands_registered = True
 
     async def _sync_slash_commands(self) -> None:
@@ -439,6 +509,73 @@ class JobAnnouncementBot(discord.Client):
         truncated_need = need_text if len(need_text) <= 1700 else (need_text[:1697] + "...")
         await interaction.response.send_message(
             f"Name: {name}\nNeed: {truncated_need}",
+            ephemeral=True,
+        )
+
+    async def _handle_search_command(
+        self,
+        interaction: discord.Interaction,
+        *,
+        query: str,
+        days: Optional[int],
+        database: str,
+        profile: Optional[str],
+        limit: int,
+    ) -> None:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        search_database = str(database or SEARCH_DATABASE_GENERAL).strip().lower()
+        profile_name = None
+        if search_database != SEARCH_DATABASE_GENERAL:
+            profile_name = profile or self._resolve_name_for_user(interaction.user)
+
+        try:
+            jobs = search_jobs(
+                query=query,
+                days=days,
+                database=search_database,
+                profile_name=profile_name,
+                limit=limit,
+            )
+        except ValueError as exc:
+            await interaction.followup.send(str(exc), ephemeral=True)
+            return
+        except Exception:
+            LOGGER.exception("Search command failed")
+            await interaction.followup.send(
+                "Search failed because the local jobs database could not be queried.",
+                ephemeral=True,
+            )
+            return
+
+        database_label = search_database.replace("_", " ")
+        profile_text = f" for {profile_name}" if profile_name else ""
+        days_text = f" from the last {days} day(s)" if days else ""
+        if not jobs:
+            await interaction.followup.send(
+                f"No {database_label} jobs found{profile_text}{days_text} matching '{query}'.",
+                ephemeral=True,
+            )
+            return
+
+        embeds: List[discord.Embed] = []
+        for job in jobs[:limit]:
+            embed = build_job_embed(job)
+            match_field, snippet = _search_match_snippet(job, query)
+            embed.add_field(name=f"Matched in {match_field}", value=snippet, inline=False)
+            if job.get("status") or job.get("profile_name"):
+                status = str(job.get("status") or "unknown")
+                matched_profile = str(job.get("profile_name") or profile_name or "")
+                value = status if not matched_profile else f"{status} | {matched_profile}"
+                embed.add_field(name="Database result", value=_truncate_text(value, 1024), inline=False)
+            embeds.append(embed)
+
+        await interaction.followup.send(
+            content=(
+                f"Found {len(jobs)} {database_label} job(s){profile_text}{days_text} "
+                f"matching '{_truncate_text(query, 80)}'."
+            ),
+            embeds=embeds[:10],
             ephemeral=True,
         )
 

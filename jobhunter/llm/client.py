@@ -41,7 +41,7 @@ class LLMClient:
             case "deepseek":
                 self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
                 self.base_url = "https://api.deepseek.com/v1/chat/completions"
-                self.model = "deepseek-v4-pro"  # DeepSeek 推荐使用专门的模型名称
+                self.model = "deepseek-v4-flash"  # DeepSeek 推荐使用专门的模型名称
     
     def set_model(self, model: str):
         """切换模型"""

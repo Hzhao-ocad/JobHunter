@@ -14,7 +14,7 @@
   ],
   "status_port": 8502,
   "last_error": "",
-  "updated_at_utc": "2026-07-12T16:01:13.874501+00:00",
+  "updated_at_utc": "2026-07-30T22:01:36.143810+00:00",
   "user_count": 4,
   "user_names": [
     "Joshua",
@@ -22,34 +22,11 @@
     "Thea",
     "Golnoushh"
   ],
-  "last_run_started_at": "2026-07-12T11:00:00.007363",
+  "last_run_started_at": "2026-07-30T17:00:00.008376",
   "events": [
     {
-      "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T03:01:34.088329+00:00",
-      "user_name": "Golnoushh",
-      "total_jobs": 245,
-      "jobs_to_filter": 0,
-      "already_seen": 245
-    },
-    {
-      "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T03:01:34.100297+00:00",
-      "user_name": "Golnoushh"
-    },
-    {
-      "event": "diagnostic_run_finished",
-      "timestamp_utc": "2026-07-12T03:01:34.125231+00:00",
-      "run_id": "20260711_220000_103394_7b5e1e3a"
-    },
-    {
-      "event": "pipeline_finished",
-      "timestamp_utc": "2026-07-12T03:01:34.147172+00:00",
-      "user_count": 4
-    },
-    {
       "event": "pipeline_started",
-      "timestamp_utc": "2026-07-12T08:00:00.070397+00:00",
+      "timestamp_utc": "2026-07-30T16:00:00.059651+00:00",
       "user_count": 4,
       "user_names": [
         "Joshua",
@@ -60,104 +37,104 @@
     },
     {
       "event": "diagnostic_run_started",
-      "timestamp_utc": "2026-07-12T08:00:00.097326+00:00",
-      "run_id": "20260712_030000_074388_50c8d252"
+      "timestamp_utc": "2026-07-30T16:00:00.090567+00:00",
+      "run_id": "20260730_110000_069629_91d44d9e"
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T08:00:00.632893+00:00",
+      "timestamp_utc": "2026-07-30T16:00:00.560311+00:00",
       "source": "getUoftjobs",
       "job_count": 50
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T08:00:44.207254+00:00",
+      "timestamp_utc": "2026-07-30T16:00:57.387665+00:00",
       "source": "GetGeneralJobs",
-      "job_count": 63
+      "job_count": 79
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T08:00:47.988140+00:00",
+      "timestamp_utc": "2026-07-30T16:01:00.465432+00:00",
       "source": "GetAkimboJobs",
-      "job_count": 54
+      "job_count": 53
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T08:00:50.132405+00:00",
+      "timestamp_utc": "2026-07-30T16:01:03.648917+00:00",
       "source": "OCADU_Scrape",
-      "job_count": 28
+      "job_count": 36
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T08:01:02.103383+00:00",
+      "timestamp_utc": "2026-07-30T16:01:17.849930+00:00",
       "source": "GetInteractiveImmersiveJobs",
       "job_count": 50
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T08:01:03.848715+00:00",
+      "timestamp_utc": "2026-07-30T16:01:20.315335+00:00",
       "user_name": "Joshua",
-      "total_jobs": 244,
+      "total_jobs": 266,
       "jobs_to_filter": 0,
-      "already_seen": 244
+      "already_seen": 266
     },
     {
       "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T08:01:03.857691+00:00",
+      "timestamp_utc": "2026-07-30T16:01:20.325308+00:00",
       "user_name": "Joshua"
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T08:01:05.659870+00:00",
+      "timestamp_utc": "2026-07-30T16:01:22.874490+00:00",
       "user_name": "Harry",
-      "total_jobs": 244,
+      "total_jobs": 266,
       "jobs_to_filter": 0,
-      "already_seen": 244
+      "already_seen": 266
     },
     {
       "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T08:01:05.668846+00:00",
+      "timestamp_utc": "2026-07-30T16:01:22.883465+00:00",
       "user_name": "Harry"
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T08:01:07.403207+00:00",
+      "timestamp_utc": "2026-07-30T16:01:25.439158+00:00",
       "user_name": "Thea",
-      "total_jobs": 244,
+      "total_jobs": 266,
       "jobs_to_filter": 0,
-      "already_seen": 244
+      "already_seen": 266
     },
     {
       "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T08:01:07.412182+00:00",
+      "timestamp_utc": "2026-07-30T16:01:25.449131+00:00",
       "user_name": "Thea"
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T08:01:09.301130+00:00",
+      "timestamp_utc": "2026-07-30T16:01:27.769923+00:00",
       "user_name": "Golnoushh",
-      "total_jobs": 244,
+      "total_jobs": 266,
       "jobs_to_filter": 0,
-      "already_seen": 244
+      "already_seen": 266
     },
     {
       "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T08:01:09.311104+00:00",
+      "timestamp_utc": "2026-07-30T16:01:27.779897+00:00",
       "user_name": "Golnoushh"
     },
     {
       "event": "diagnostic_run_finished",
-      "timestamp_utc": "2026-07-12T08:01:09.330053+00:00",
-      "run_id": "20260712_030000_074388_50c8d252"
+      "timestamp_utc": "2026-07-30T16:01:27.797849+00:00",
+      "run_id": "20260730_110000_069629_91d44d9e"
     },
     {
       "event": "pipeline_finished",
-      "timestamp_utc": "2026-07-12T08:01:09.349002+00:00",
+      "timestamp_utc": "2026-07-30T16:01:27.816798+00:00",
       "user_count": 4
     },
     {
       "event": "pipeline_started",
-      "timestamp_utc": "2026-07-12T13:00:00.063299+00:00",
+      "timestamp_utc": "2026-07-30T19:00:00.058935+00:00",
       "user_count": 4,
       "user_names": [
         "Joshua",
@@ -168,148 +145,148 @@
     },
     {
       "event": "diagnostic_run_started",
-      "timestamp_utc": "2026-07-12T13:00:00.089229+00:00",
-      "run_id": "20260712_080000_068286_44659e07"
+      "timestamp_utc": "2026-07-30T19:00:00.088855+00:00",
+      "run_id": "20260730_140000_066915_c76ad554"
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T13:00:00.623799+00:00",
+      "timestamp_utc": "2026-07-30T19:00:00.612454+00:00",
       "source": "getUoftjobs",
       "job_count": 50
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T13:00:57.718533+00:00",
+      "timestamp_utc": "2026-07-30T19:00:39.993129+00:00",
       "source": "GetGeneralJobs",
-      "job_count": 63
+      "job_count": 77
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T13:01:07.338719+00:00",
+      "timestamp_utc": "2026-07-30T19:00:44.259718+00:00",
       "source": "GetAkimboJobs",
-      "job_count": 54
+      "job_count": 53
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T13:01:09.436109+00:00",
+      "timestamp_utc": "2026-07-30T19:00:47.107100+00:00",
       "source": "OCADU_Scrape",
-      "job_count": 28
+      "job_count": 36
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T13:01:23.834594+00:00",
+      "timestamp_utc": "2026-07-30T19:01:01.048807+00:00",
       "source": "GetInteractiveImmersiveJobs",
       "job_count": 50
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T13:01:25.611840+00:00",
+      "timestamp_utc": "2026-07-30T19:01:03.546127+00:00",
       "user_name": "Joshua",
-      "total_jobs": 244,
-      "jobs_to_filter": 8,
-      "already_seen": 236
+      "total_jobs": 264,
+      "jobs_to_filter": 5,
+      "already_seen": 259
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T13:01:49.144056+00:00",
+      "timestamp_utc": "2026-07-30T19:01:08.144826+00:00",
       "user_name": "Joshua",
       "batch_index": 0,
-      "batch_job_count": 8,
-      "recommended_count": 5
+      "batch_job_count": 5,
+      "recommended_count": 0
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T13:01:49.177964+00:00",
+      "timestamp_utc": "2026-07-30T19:01:08.211647+00:00",
       "user_name": "Joshua",
-      "potential_count": 5,
-      "unwanted_count": 3,
-      "total_input_jobs": 8
-    },
-    {
-      "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T13:01:51.332203+00:00",
-      "user_name": "Harry",
-      "total_jobs": 244,
-      "jobs_to_filter": 8,
-      "already_seen": 236
-    },
-    {
-      "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T13:02:18.877709+00:00",
-      "user_name": "Harry",
-      "batch_index": 0,
-      "batch_job_count": 8,
-      "recommended_count": 3
-    },
-    {
-      "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T13:02:18.899650+00:00",
-      "user_name": "Harry",
-      "potential_count": 3,
+      "potential_count": 0,
       "unwanted_count": 5,
-      "total_input_jobs": 8
+      "total_input_jobs": 5
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T13:02:20.874368+00:00",
-      "user_name": "Thea",
-      "total_jobs": 244,
-      "jobs_to_filter": 8,
-      "already_seen": 236
+      "timestamp_utc": "2026-07-30T19:01:10.901452+00:00",
+      "user_name": "Harry",
+      "total_jobs": 264,
+      "jobs_to_filter": 5,
+      "already_seen": 259
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T13:02:49.775062+00:00",
-      "user_name": "Thea",
+      "timestamp_utc": "2026-07-30T19:01:17.753126+00:00",
+      "user_name": "Harry",
       "batch_index": 0,
-      "batch_job_count": 8,
-      "recommended_count": 5
+      "batch_job_count": 5,
+      "recommended_count": 0
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T13:02:49.808969+00:00",
-      "user_name": "Thea",
-      "potential_count": 5,
-      "unwanted_count": 3,
-      "total_input_jobs": 8
+      "timestamp_utc": "2026-07-30T19:01:17.815956+00:00",
+      "user_name": "Harry",
+      "potential_count": 0,
+      "unwanted_count": 5,
+      "total_input_jobs": 5
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T13:02:51.925309+00:00",
-      "user_name": "Golnoushh",
-      "total_jobs": 244,
-      "jobs_to_filter": 8,
-      "already_seen": 236
+      "timestamp_utc": "2026-07-30T19:01:20.558278+00:00",
+      "user_name": "Thea",
+      "total_jobs": 264,
+      "jobs_to_filter": 5,
+      "already_seen": 259
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T13:03:24.254773+00:00",
-      "user_name": "Golnoushh",
+      "timestamp_utc": "2026-07-30T19:01:24.825863+00:00",
+      "user_name": "Thea",
       "batch_index": 0,
-      "batch_job_count": 8,
-      "recommended_count": 5
+      "batch_job_count": 5,
+      "recommended_count": 0
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T13:03:24.305636+00:00",
+      "timestamp_utc": "2026-07-30T19:01:24.870743+00:00",
+      "user_name": "Thea",
+      "potential_count": 0,
+      "unwanted_count": 5,
+      "total_input_jobs": 5
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-30T19:01:27.455828+00:00",
       "user_name": "Golnoushh",
-      "potential_count": 5,
-      "unwanted_count": 3,
-      "total_input_jobs": 8
+      "total_jobs": 264,
+      "jobs_to_filter": 5,
+      "already_seen": 259
+    },
+    {
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T19:01:32.596890+00:00",
+      "user_name": "Golnoushh",
+      "batch_index": 0,
+      "batch_job_count": 5,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T19:01:32.651742+00:00",
+      "user_name": "Golnoushh",
+      "potential_count": 0,
+      "unwanted_count": 5,
+      "total_input_jobs": 5
     },
     {
       "event": "diagnostic_run_finished",
-      "timestamp_utc": "2026-07-12T13:03:24.582894+00:00",
-      "run_id": "20260712_080000_068286_44659e07"
+      "timestamp_utc": "2026-07-30T19:01:32.830264+00:00",
+      "run_id": "20260730_140000_066915_c76ad554"
     },
     {
       "event": "pipeline_finished",
-      "timestamp_utc": "2026-07-12T13:03:24.603837+00:00",
+      "timestamp_utc": "2026-07-30T19:01:32.849213+00:00",
       "user_count": 4
     },
     {
       "event": "pipeline_started",
-      "timestamp_utc": "2026-07-12T15:42:00.069591+00:00",
+      "timestamp_utc": "2026-07-30T19:27:00.067109+00:00",
       "user_count": 4,
       "user_names": [
         "Joshua",
@@ -320,122 +297,122 @@
     },
     {
       "event": "diagnostic_run_started",
-      "timestamp_utc": "2026-07-12T15:42:00.096518+00:00",
-      "run_id": "20260712_104200_074578_0a2bbb78"
+      "timestamp_utc": "2026-07-30T19:27:00.091044+00:00",
+      "run_id": "20260730_142700_073093_e89447b7"
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T15:42:00.673973+00:00",
+      "timestamp_utc": "2026-07-30T19:27:00.588712+00:00",
       "source": "getUoftjobs",
       "job_count": 50
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T15:42:44.967491+00:00",
+      "timestamp_utc": "2026-07-30T19:27:41.712178+00:00",
       "source": "GetGeneralJobs",
-      "job_count": 62
+      "job_count": 77
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T15:42:53.537566+00:00",
+      "timestamp_utc": "2026-07-30T19:27:45.707491+00:00",
       "source": "GetAkimboJobs",
-      "job_count": 54
+      "job_count": 53
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T15:42:55.516273+00:00",
+      "timestamp_utc": "2026-07-30T19:27:48.342442+00:00",
       "source": "OCADU_Scrape",
-      "job_count": 28
+      "job_count": 37
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T15:43:08.217299+00:00",
+      "timestamp_utc": "2026-07-30T19:28:03.747236+00:00",
       "source": "GetInteractiveImmersiveJobs",
       "job_count": 50
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T15:43:09.995542+00:00",
+      "timestamp_utc": "2026-07-30T19:28:06.161777+00:00",
       "user_name": "Joshua",
-      "total_jobs": 243,
+      "total_jobs": 265,
       "jobs_to_filter": 1,
-      "already_seen": 242
+      "already_seen": 264
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T15:43:15.944631+00:00",
+      "timestamp_utc": "2026-07-30T19:28:13.124153+00:00",
       "user_name": "Joshua",
+      "batch_index": 0,
+      "batch_job_count": 1,
+      "recommended_count": 1
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T19:28:13.166042+00:00",
+      "user_name": "Joshua",
+      "potential_count": 1,
+      "unwanted_count": 0,
+      "total_input_jobs": 1
+    },
+    {
+      "event": "db_prefilter_finished",
+      "timestamp_utc": "2026-07-30T19:28:15.739158+00:00",
+      "user_name": "Harry",
+      "total_jobs": 265,
+      "jobs_to_filter": 1,
+      "already_seen": 264
+    },
+    {
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T19:28:19.763395+00:00",
+      "user_name": "Harry",
       "batch_index": 0,
       "batch_job_count": 1,
       "recommended_count": 0
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T15:43:16.002476+00:00",
-      "user_name": "Joshua",
+      "timestamp_utc": "2026-07-30T19:28:19.828222+00:00",
+      "user_name": "Harry",
       "potential_count": 0,
       "unwanted_count": 1,
       "total_input_jobs": 1
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T15:43:17.937299+00:00",
-      "user_name": "Harry",
-      "total_jobs": 243,
+      "timestamp_utc": "2026-07-30T19:28:22.418343+00:00",
+      "user_name": "Thea",
+      "total_jobs": 265,
       "jobs_to_filter": 1,
-      "already_seen": 242
+      "already_seen": 264
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T15:43:24.459888+00:00",
-      "user_name": "Harry",
+      "timestamp_utc": "2026-07-30T19:28:30.933759+00:00",
+      "user_name": "Thea",
       "batch_index": 0,
       "batch_job_count": 1,
-      "recommended_count": 0
+      "recommended_count": 1
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T15:43:24.500778+00:00",
-      "user_name": "Harry",
-      "potential_count": 0,
-      "unwanted_count": 1,
+      "timestamp_utc": "2026-07-30T19:28:30.978637+00:00",
+      "user_name": "Thea",
+      "potential_count": 1,
+      "unwanted_count": 0,
       "total_input_jobs": 1
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T15:43:26.544311+00:00",
-      "user_name": "Thea",
-      "total_jobs": 243,
-      "jobs_to_filter": 1,
-      "already_seen": 242
-    },
-    {
-      "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T15:43:36.733296+00:00",
-      "user_name": "Thea",
-      "batch_index": 0,
-      "batch_job_count": 1,
-      "recommended_count": 0
-    },
-    {
-      "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T15:43:36.784160+00:00",
-      "user_name": "Thea",
-      "potential_count": 0,
-      "unwanted_count": 1,
-      "total_input_jobs": 1
-    },
-    {
-      "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T15:43:38.688066+00:00",
+      "timestamp_utc": "2026-07-30T19:28:33.390187+00:00",
       "user_name": "Golnoushh",
-      "total_jobs": 243,
+      "total_jobs": 265,
       "jobs_to_filter": 1,
-      "already_seen": 242
+      "already_seen": 264
     },
     {
       "event": "llm_batch_finished",
-      "timestamp_utc": "2026-07-12T15:43:44.381837+00:00",
+      "timestamp_utc": "2026-07-30T19:28:41.309005+00:00",
       "user_name": "Golnoushh",
       "batch_index": 0,
       "batch_job_count": 1,
@@ -443,7 +420,7 @@
     },
     {
       "event": "user_filter_finished",
-      "timestamp_utc": "2026-07-12T15:43:44.419735+00:00",
+      "timestamp_utc": "2026-07-30T19:28:41.339921+00:00",
       "user_name": "Golnoushh",
       "potential_count": 0,
       "unwanted_count": 1,
@@ -451,17 +428,17 @@
     },
     {
       "event": "diagnostic_run_finished",
-      "timestamp_utc": "2026-07-12T15:43:44.511489+00:00",
-      "run_id": "20260712_104200_074578_0a2bbb78"
+      "timestamp_utc": "2026-07-30T19:28:41.434668+00:00",
+      "run_id": "20260730_142700_073093_e89447b7"
     },
     {
       "event": "pipeline_finished",
-      "timestamp_utc": "2026-07-12T15:43:44.533430+00:00",
+      "timestamp_utc": "2026-07-30T19:28:41.465585+00:00",
       "user_count": 4
     },
     {
       "event": "pipeline_started",
-      "timestamp_utc": "2026-07-12T16:00:00.053236+00:00",
+      "timestamp_utc": "2026-07-30T22:00:00.062228+00:00",
       "user_count": 4,
       "user_names": [
         "Joshua",
@@ -472,103 +449,147 @@
     },
     {
       "event": "diagnostic_run_started",
-      "timestamp_utc": "2026-07-12T16:00:00.083156+00:00",
-      "run_id": "20260712_110000_065204_178663e0"
+      "timestamp_utc": "2026-07-30T22:00:00.094143+00:00",
+      "run_id": "20260730_170000_070208_d269d68c"
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T16:00:00.586809+00:00",
+      "timestamp_utc": "2026-07-30T22:00:00.559897+00:00",
       "source": "getUoftjobs",
       "job_count": 50
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T16:00:41.078524+00:00",
+      "timestamp_utc": "2026-07-30T22:00:43.356509+00:00",
       "source": "GetGeneralJobs",
-      "job_count": 62
+      "job_count": 80
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T16:00:47.843429+00:00",
+      "timestamp_utc": "2026-07-30T22:00:47.180281+00:00",
       "source": "GetAkimboJobs",
-      "job_count": 54
+      "job_count": 53
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T16:00:50.073463+00:00",
+      "timestamp_utc": "2026-07-30T22:00:50.052597+00:00",
       "source": "OCADU_Scrape",
-      "job_count": 28
+      "job_count": 37
     },
     {
       "event": "scraper_finished",
-      "timestamp_utc": "2026-07-12T16:01:05.688398+00:00",
+      "timestamp_utc": "2026-07-30T22:01:03.677791+00:00",
       "source": "GetInteractiveImmersiveJobs",
       "job_count": 50
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T16:01:07.910454+00:00",
+      "timestamp_utc": "2026-07-30T22:01:06.384551+00:00",
       "user_name": "Joshua",
-      "total_jobs": 243,
-      "jobs_to_filter": 0,
-      "already_seen": 243
+      "total_jobs": 268,
+      "jobs_to_filter": 6,
+      "already_seen": 262
     },
     {
-      "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T16:01:07.920428+00:00",
-      "user_name": "Joshua"
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T22:01:12.139158+00:00",
+      "user_name": "Joshua",
+      "batch_index": 0,
+      "batch_job_count": 6,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T22:01:12.178054+00:00",
+      "user_name": "Joshua",
+      "potential_count": 0,
+      "unwanted_count": 6,
+      "total_input_jobs": 6
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T16:01:09.696677+00:00",
+      "timestamp_utc": "2026-07-30T22:01:14.990530+00:00",
       "user_name": "Harry",
-      "total_jobs": 243,
-      "jobs_to_filter": 0,
-      "already_seen": 243
+      "total_jobs": 268,
+      "jobs_to_filter": 6,
+      "already_seen": 262
     },
     {
-      "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T16:01:09.705653+00:00",
-      "user_name": "Harry"
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T22:01:19.629125+00:00",
+      "user_name": "Harry",
+      "batch_index": 0,
+      "batch_job_count": 6,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T22:01:19.671011+00:00",
+      "user_name": "Harry",
+      "potential_count": 0,
+      "unwanted_count": 6,
+      "total_input_jobs": 6
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T16:01:11.688348+00:00",
+      "timestamp_utc": "2026-07-30T22:01:22.315936+00:00",
       "user_name": "Thea",
-      "total_jobs": 243,
-      "jobs_to_filter": 0,
-      "already_seen": 243
+      "total_jobs": 268,
+      "jobs_to_filter": 6,
+      "already_seen": 262
     },
     {
-      "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T16:01:11.697325+00:00",
-      "user_name": "Thea"
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T22:01:27.836170+00:00",
+      "user_name": "Thea",
+      "batch_index": 0,
+      "batch_job_count": 6,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T22:01:27.875066+00:00",
+      "user_name": "Thea",
+      "potential_count": 0,
+      "unwanted_count": 6,
+      "total_input_jobs": 6
     },
     {
       "event": "db_prefilter_finished",
-      "timestamp_utc": "2026-07-12T16:01:13.819648+00:00",
+      "timestamp_utc": "2026-07-30T22:01:30.680561+00:00",
       "user_name": "Golnoushh",
-      "total_jobs": 243,
-      "jobs_to_filter": 0,
-      "already_seen": 243
+      "total_jobs": 268,
+      "jobs_to_filter": 6,
+      "already_seen": 262
     },
     {
-      "event": "user_skipped_no_new_jobs",
-      "timestamp_utc": "2026-07-12T16:01:13.830619+00:00",
-      "user_name": "Golnoushh"
+      "event": "llm_batch_finished",
+      "timestamp_utc": "2026-07-30T22:01:35.785769+00:00",
+      "user_name": "Golnoushh",
+      "batch_index": 0,
+      "batch_job_count": 6,
+      "recommended_count": 0
+    },
+    {
+      "event": "user_filter_finished",
+      "timestamp_utc": "2026-07-30T22:01:35.835635+00:00",
+      "user_name": "Golnoushh",
+      "potential_count": 0,
+      "unwanted_count": 6,
+      "total_input_jobs": 6
     },
     {
       "event": "diagnostic_run_finished",
-      "timestamp_utc": "2026-07-12T16:01:13.848570+00:00",
-      "run_id": "20260712_110000_065204_178663e0"
+      "timestamp_utc": "2026-07-30T22:01:36.115885+00:00",
+      "run_id": "20260730_170000_070208_d269d68c"
     },
     {
       "event": "pipeline_finished",
-      "timestamp_utc": "2026-07-12T16:01:13.865525+00:00",
+      "timestamp_utc": "2026-07-30T22:01:36.134834+00:00",
       "user_count": 4
     }
   ],
-  "current_run_id": "20260712_110000_065204_178663e0",
+  "current_run_id": "20260730_170000_070208_d269d68c",
   "scrape_sources_done": [
     "getUoftjobs",
     "GetGeneralJobs",
@@ -577,19 +598,19 @@
     "GetInteractiveImmersiveJobs"
   ],
   "scrape_sources_total": 5,
-  "llm_batches_done": 0,
-  "llm_batches_total": 0,
-  "db_writes_done": 0,
-  "db_writes_total": 0,
+  "llm_batches_done": 1,
+  "llm_batches_total": 1,
+  "db_writes_done": 6,
+  "db_writes_total": 6,
   "current_source": "",
-  "total_jobs_after_dedupe": 243,
-  "total_jobs_before_dedupe": 244,
+  "total_jobs_after_dedupe": 268,
+  "total_jobs_before_dedupe": 270,
   "current_user": "",
   "current_user_index": 4,
   "current_batch": 0,
-  "jobs_to_filter": 1,
-  "current_batch_job_count": 1,
+  "jobs_to_filter": 6,
+  "current_batch_job_count": 6,
   "current_batch_start_index": 0,
-  "last_run_finished_at": "2026-07-12T11:01:13.851564",
-  "next_run_at": "2026-07-12T14:00:00"
+  "last_run_finished_at": "2026-07-30T17:01:36.118877",
+  "next_run_at": "2026-07-30T22:00:00"
 }

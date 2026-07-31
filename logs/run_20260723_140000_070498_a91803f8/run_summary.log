@@ -1,0 +1,23 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260723_140000_070498_a91803f8
+Started : 2026-07-23T19:00:00.070498+00:00
+============================================================
+[2026-07-23T19:00:00.668897+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-07-23T19:00:45.466083+00:00] SCRAPE | source=GetGeneralJobs | jobs=79
+[2026-07-23T19:00:51.616631+00:00] SCRAPE | source=GetAkimboJobs | jobs=55
+[2026-07-23T19:00:55.457357+00:00] SCRAPE | source=OCADU_Scrape | jobs=49
+[2026-07-23T19:01:08.165937+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-07-23T19:01:08.178901+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=282
+[2026-07-23T19:01:17.808144+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-23T19:01:17.825099+00:00] RESULT | user=Joshua | potential=0 | unwanted=4 | total_input=4
+[2026-07-23T19:01:26.752221+00:00] LLM    | user=Harry | batch=0 | msgs=2 | resp_len=861 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-23T19:01:26.816053+00:00] RESULT | user=Harry | potential=2 | unwanted=1 | total_input=3
+[2026-07-23T19:01:36.055966+00:00] LLM    | user=Thea | batch=0 | msgs=2 | resp_len=387 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-23T19:01:36.106829+00:00] RESULT | user=Thea | potential=1 | unwanted=2 | total_input=3
+[2026-07-23T19:01:48.126676+00:00] LLM    | user=Golnoushh | batch=0 | msgs=2 | resp_len=486 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-23T19:01:48.178537+00:00] RESULT | user=Golnoushh | potential=1 | unwanted=2 | total_input=3
+
+============================================================
+Run ended: 2026-07-23T19:01:48.317166+00:00
+============================================================

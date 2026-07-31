@@ -10,6 +10,7 @@ from jobhunter.storage.repositories import (
     job_exists,
     mark_profile_jobs_status,
     profile_job_exists,
+    search_jobs,
     upsert_profile,
 )
 from jobhunter.storage.schema import create_jobs_table
@@ -30,5 +31,6 @@ __all__ = [
     "job_exists",
     "mark_profile_jobs_status",
     "profile_job_exists",
+    "search_jobs",
     "upsert_profile",
 ]

@@ -1,0 +1,24 @@
+============================================================
+JobHunter Diagnostic Run
+Run ID  : 20260721_220000_061951_7bff9e95
+Started : 2026-07-22T03:00:00.061951+00:00
+============================================================
+[2026-07-22T03:00:00.562610+00:00] SCRAPE | source=getUoftjobs | jobs=50
+[2026-07-22T03:00:58.051864+00:00] SCRAPE | source=GetGeneralJobs | jobs=76
+[2026-07-22T03:01:06.716687+00:00] SCRAPE | source=GetAkimboJobs | jobs=55
+[2026-07-22T03:01:09.868256+00:00] SCRAPE | source=OCADU_Scrape | jobs=44
+[2026-07-22T03:01:21.482189+00:00] SCRAPE | source=GetInteractiveImmersiveJobs | jobs=50
+[2026-07-22T03:01:21.495155+00:00] SCRAPE | source=ALL_SCRAPERS_COMBINED_DEDUPED | jobs=271
+[2026-07-22T03:01:31.266604+00:00] LLM    | user=Joshua | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-22T03:01:33.908537+00:00] LLM    | user=Joshua | batch=1 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-22T03:01:33.980344+00:00] RESULT | user=Joshua | potential=0 | unwanted=13 | total_input=13
+[2026-07-22T03:01:44.140168+00:00] LLM    | user=Harry | batch=0 | msgs=2 | resp_len=2 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-22T03:01:44.194025+00:00] RESULT | user=Harry | potential=0 | unwanted=6 | total_input=6
+[2026-07-22T03:01:57.082547+00:00] LLM    | user=Thea | batch=0 | msgs=2 | resp_len=443 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-22T03:01:57.143384+00:00] RESULT | user=Thea | potential=1 | unwanted=5 | total_input=6
+[2026-07-22T03:02:08.160908+00:00] LLM    | user=Golnoushh | batch=0 | msgs=2 | resp_len=3 | status=OK | model=deepseek-v4-flash | provider=deepseek
+[2026-07-22T03:02:08.214763+00:00] RESULT | user=Golnoushh | potential=0 | unwanted=6 | total_input=6
+
+============================================================
+Run ended: 2026-07-22T03:02:08.437168+00:00
+============================================================
